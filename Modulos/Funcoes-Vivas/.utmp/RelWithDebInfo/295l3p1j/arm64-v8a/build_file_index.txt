@@ -1,0 +1,2 @@
+C:\Users\ferna\Documents\XR-Tangivel\Modulos\Funcoes-Vivas\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\ferna\Documents\XR-Tangivel\Modulos\Funcoes-Vivas\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt
