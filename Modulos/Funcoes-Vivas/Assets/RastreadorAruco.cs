@@ -7,6 +7,9 @@ using Unity.Collections.LowLevel.Unsafe;
 public class RastreadorAruco : MonoBehaviour
 {
     public ARCameraManager cameraManager;
+    public float valorPotenciometro = 0f; 
+    private float ultimoAngulo = 0f;
+    private bool primeiraVez = true;
 
     [DllImport("MinhaArucoDLL2")]
     private static extern int DetectarAruco(IntPtr pixels, int width, int height, int channels, float[] outCorners);
@@ -46,8 +49,27 @@ public class RastreadorAruco : MonoBehaviour
 
             if (idEncontrado != -1)
             {
-                Debug.Log($"ACHOU O ARUCO! ID: {idEncontrado}");
-                Debug.Log($"Canto superior esquerdo tá no X: {cantos[0]}, Y: {cantos[1]} da tela!");
+                float x0 = cantos[0];
+                float y0 = cantos[1];
+                float x1 = cantos[2]; // X do segundo canto
+                float y1 = cantos[3]; // Y do segundo canto
+                float dx = x1 - x0;
+                float dy = y1 - y0;
+                float anguloAtual = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+                if (primeiraVez)
+                {
+                    ultimoAngulo = anguloAtual;
+                    primeiraVez = false;
+                }
+                float giro = Mathf.DeltaAngle(ultimoAngulo, anguloAtual);
+                valorPotenciometro += giro;
+
+                ultimoAngulo = anguloAtual;
+                Debug.Log($"Valor do Potenciômetro: {valorPotenciometro:F1}");
+            }
+            else
+            {
+                primeiraVez = true;
             }
         }
         catch (Exception e)
