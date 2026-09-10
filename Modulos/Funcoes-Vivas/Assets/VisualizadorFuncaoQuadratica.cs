@@ -4,10 +4,17 @@ using TMPro;
 
 public class VisualizadorFuncaoQuadratica : MonoBehaviour
 {
-    [Header("Configurações da Curva")]
-    [Tooltip("Valor do escalar 'a' na função f(x) = a * x²")]
+    [Header("Coeficientes da Função f(x) = ax² + bx + c")]
+    [Tooltip("Valor do escalar 'a' (curvatura / abertura da parábola)")]
     public float coeficienteA = 1.0f;
 
+    [Tooltip("Valor do escalar 'b' (inclinação / deslocamento do vértice)")]
+    public float coeficienteB = 0.0f;
+
+    [Tooltip("Valor do escalar 'c' (intercepto no eixo Y)")]
+    public float coeficienteC = 0.0f;
+
+    [Header("Configurações da Curva")]
     [Tooltip("Número de segmentos da linha da parábola")]
     [Range(20, 200)]
     public int resolucao = 100;
@@ -72,7 +79,7 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
             Vector3 posAlvo = camPrincipal.transform.position + camPrincipal.transform.forward * distanciaCamera + camPrincipal.transform.TransformDirection(offsetCamera);
             transform.position = Vector3.Lerp(transform.position, posAlvo, Time.deltaTime * suavizacaoSeguir);
             
-            // Olha para a câmera
+            // Mantém virado para a câmera
             Vector3 direcao = transform.position - camPrincipal.transform.position;
             if (direcao.sqrMagnitude > 0.001f)
             {
@@ -114,9 +121,15 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         {
             if (linhaEixos == null)
             {
-                GameObject objEixos = new GameObject("Linha_Eixos");
-                objEixos.transform.SetParent(transform, false);
-                linhaEixos = objEixos.AddComponent<LineRenderer>();
+                Transform tEixos = transform.Find("Linha_Eixos");
+                if (tEixos != null) linhaEixos = tEixos.GetComponent<LineRenderer>();
+
+                if (linhaEixos == null)
+                {
+                    GameObject objEixos = new GameObject("Linha_Eixos");
+                    objEixos.transform.SetParent(transform, false);
+                    linhaEixos = objEixos.AddComponent<LineRenderer>();
+                }
             }
 
             linhaEixos.useWorldSpace = false;
@@ -133,28 +146,52 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         // 3. Texto informativo da equação
         if (textoEquacao == null)
         {
-            GameObject objTexto = new GameObject("Texto_Equacao");
-            objTexto.transform.SetParent(transform, false);
-            objTexto.transform.localPosition = new Vector3(0f, (xMax * xMax * escalaGrafico) + 0.08f, 0f);
+            textoEquacao = GetComponentInChildren<TMP_Text>();
+            if (textoEquacao == null)
+            {
+                GameObject objTexto = new GameObject("Texto_Equacao");
+                objTexto.transform.SetParent(transform, false);
+                objTexto.transform.localPosition = new Vector3(0f, (xMax * xMax * escalaGrafico) + 0.08f, 0f);
 
-            textoEquacao = objTexto.AddComponent<TextMeshPro>();
-            textoEquacao.fontSize = 1.6f;
-            textoEquacao.alignment = TextAlignmentOptions.Center;
-            textoEquacao.color = Color.white;
+                textoEquacao = objTexto.AddComponent<TextMeshPro>();
+                textoEquacao.fontSize = 1.6f;
+                textoEquacao.alignment = TextAlignmentOptions.Center;
+                textoEquacao.color = Color.white;
+            }
         }
     }
 
     /// <summary>
-    /// Atualiza o valor do coeficiente 'a' e redesenha a curva.
+    /// Atualiza todos os coeficientes e redesenha a curva.
     /// </summary>
+    public void AtualizarCoeficientes(float novoA, float novoB, float novoC)
+    {
+        coeficienteA = novoA;
+        coeficienteB = novoB;
+        coeficienteC = novoC;
+        RedesenharGrafico();
+    }
+
     public void AtualizarCoeficienteA(float novoA)
     {
         coeficienteA = novoA;
         RedesenharGrafico();
     }
 
+    public void AtualizarCoeficienteB(float novoB)
+    {
+        coeficienteB = novoB;
+        RedesenharGrafico();
+    }
+
+    public void AtualizarCoeficienteC(float novoC)
+    {
+        coeficienteC = novoC;
+        RedesenharGrafico();
+    }
+
     /// <summary>
-    /// Calcula os vértices da parábola f(x) = a * x^2
+    /// Calcula os vértices da parábola f(x) = a * x^2 + b * x + c
     /// </summary>
     public void RedesenharGrafico()
     {
@@ -167,9 +204,9 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         {
             float t = (float)i / (resolucao - 1);
             float x = Mathf.Lerp(xMin, xMax, t);
-            float y = coeficienteA * (x * x);
+            float y = (coeficienteA * (x * x)) + (coeficienteB * x) + coeficienteC;
 
-            // Aplica a escala visual para mundo AR
+            // Aplica a escala visual para o mundo AR
             Vector3 pontoLocal = new Vector3(x * escalaGrafico, y * escalaGrafico, 0f);
             linhaParabola.SetPosition(i, pontoLocal);
         }
@@ -177,14 +214,52 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         // Atualiza o texto da fórmula
         if (textoEquacao != null)
         {
-            string concavidade = coeficienteA > 0.01f ? " (Concavidade para cima)" :
-                                 coeficienteA < -0.01f ? " (Concavidade para baixo)" : " (Reta y = 0)";
-            textoEquacao.text = $"f(x) = {coeficienteA:F2}x²\n<size=70%>{concavidade}</size>";
+            string equacaoFormatada = FormatarEquacao();
+            string detalhes = ObterDetalhesMatematicos();
 
-            // Ajusta a posição do texto para não ficar em cima do vértice da parábola
-            float yTexto = (coeficienteA >= 0) ? (xMax * escalaGrafico * 0.8f) + 0.1f : -0.15f;
-            textoEquacao.transform.localPosition = new Vector3(0f, yTexto, 0f);
+            textoEquacao.text = $"{equacaoFormatada}\n<size=65%>{detalhes}</size>";
+
+            // Ajusta a posição vertical do texto para ficar sempre visível logo acima do gráfico
+            float topoY = Mathf.Max(
+                (coeficienteA * xMin * xMin) + (coeficienteB * xMin) + coeficienteC,
+                (coeficienteA * xMax * xMax) + (coeficienteB * xMax) + coeficienteC
+            );
+            float yTexto = (topoY * escalaGrafico) + 0.12f;
+            textoEquacao.transform.localPosition = new Vector3(0f, Mathf.Clamp(yTexto, 0.2f, 1.5f), 0f);
         }
+    }
+
+    private string FormatarEquacao()
+    {
+        string sinalB = coeficienteB >= 0 ? "+" : "-";
+        string sinalC = coeficienteC >= 0 ? "+" : "-";
+
+        return $"f(x) = {coeficienteA:F2}x² {sinalB} {Mathf.Abs(coeficienteB):F2}x {sinalC} {Mathf.Abs(coeficienteC):F2}";
+    }
+
+    private string ObterDetalhesMatematicos()
+    {
+        if (Mathf.Abs(coeficienteA) < 0.001f)
+        {
+            return "Função Afim / Reta (a ≈ 0)";
+        }
+
+        // Vértice da parábola: Xv = -b / 2a, Yv = -Δ / 4a
+        float xv = -coeficienteB / (2f * coeficienteA);
+        float yv = (coeficienteA * xv * xv) + (coeficienteB * xv) + coeficienteC;
+
+        // Discriminante: Δ = b² - 4ac
+        float delta = (coeficienteB * coeficienteB) - (4f * coeficienteA * coeficienteC);
+
+        string infoRaizes;
+        if (delta > 0.001f)
+            infoRaizes = "2 raízes reais";
+        else if (Mathf.Abs(delta) <= 0.001f)
+            infoRaizes = "1 raiz real (dupla)";
+        else
+            infoRaizes = "Sem raízes reais (Δ < 0)";
+
+        return $"Vértice: ({xv:F2}, {yv:F2})  |  Δ = {delta:F2} ({infoRaizes})";
     }
 
     private void DesenharEixosCartesianos()

@@ -12,41 +12,121 @@ public class RastreadorAruco : MonoBehaviour
         AnguloAbsoluto         // O ângulo direto do marcador define o valor (-180° a +180°)
     }
 
+    [System.Serializable]
+    public class ParametroAruco
+    {
+        public string nome = "Parâmetro";
+        public int idAlvo = 42;
+        public float valorAtual = 0f;
+        public float sensibilidade = 0.01f;
+        public bool limitarValor = true;
+        public float valorMin = -5.0f;
+        public float valorMax = 5.0f;
+
+        [HideInInspector] public float valorPotenciometro = 0f;
+        [HideInInspector] public float ultimoAngulo = 0f;
+        [HideInInspector] public bool primeiraVez = true;
+
+        public void Inicializar(float valorInicial)
+        {
+            valorAtual = valorInicial;
+            float sens = Mathf.Abs(sensibilidade) > 0.0001f ? sensibilidade : 0.01f;
+            valorPotenciometro = valorAtual / sens;
+            primeiraVez = true;
+        }
+
+        public void ProcessarRotacao(float anguloAtual, ModoRotacao modo)
+        {
+            if (modo == ModoRotacao.PotenciometroContinuo)
+            {
+                if (primeiraVez)
+                {
+                    ultimoAngulo = anguloAtual;
+                    primeiraVez = false;
+                }
+
+                float giro = Mathf.DeltaAngle(ultimoAngulo, anguloAtual);
+                valorPotenciometro += giro;
+                ultimoAngulo = anguloAtual;
+                valorAtual = valorPotenciometro * sensibilidade;
+            }
+            else // AnguloAbsoluto
+            {
+                valorAtual = anguloAtual * sensibilidade;
+            }
+
+            if (limitarValor)
+            {
+                valorAtual = Mathf.Clamp(valorAtual, valorMin, valorMax);
+                if (modo == ModoRotacao.PotenciometroContinuo)
+                {
+                    float sens = Mathf.Abs(sensibilidade) > 0.0001f ? sensibilidade : 0.01f;
+                    valorPotenciometro = valorAtual / sens;
+                }
+            }
+        }
+
+        public void ResetarGiro()
+        {
+            primeiraVez = true;
+        }
+    }
+
     [Header("Conexão com Câmera")]
     public ARCameraManager cameraManager;
 
-    [Header("Configuração do ArUco")]
-    [Tooltip("ID do ArUco alvo para controlar a função quadrática")]
-    public int idAlvo = 42;
-
-    [Header("Integração com Gráfico Quadrático")]
-    [Tooltip("Referência ao visualizador da função f(x) = a * x²")]
+    [Header("Integração com Gráfico")]
     public VisualizadorFuncaoQuadratica visualizadorFuncao;
 
-    [Header("Ajuste da Rotação -> Escalar 'a'")]
+    [Header("Modo de Rotação Global")]
     public ModoRotacao modo = ModoRotacao.PotenciometroContinuo;
 
-    [Tooltip("Sensibilidade que converte graus em valor escalar 'a' (ex: 0.01 = 100° equivale a 1.0)")]
-    public float sensibilidade = 0.01f;
+    [Header("Controle dos Coeficientes da Função f(x) = ax² + bx + c")]
+    [Tooltip("Controla o termo quadrático 'a'")]
+    public ParametroAruco parametroA = new ParametroAruco 
+    { 
+        nome = "a (Curvatura x²)", 
+        idAlvo = 42, 
+        valorAtual = 1.0f, 
+        sensibilidade = 0.01f, 
+        limitarValor = true, 
+        valorMin = -5.0f, 
+        valorMax = 5.0f 
+    };
 
-    [Tooltip("Limita o valor mínimo e máximo de 'a'")]
-    public bool limitarValor = true;
-    public float valorMin = -5.0f;
-    public float valorMax = 5.0f;
+    [Tooltip("Controla o termo linear 'b'")]
+    public ParametroAruco parametroB = new ParametroAruco 
+    { 
+        nome = "b (Inclinação x)", 
+        idAlvo = 43, 
+        valorAtual = 0.0f, 
+        sensibilidade = 0.01f, 
+        limitarValor = true, 
+        valorMin = -5.0f, 
+        valorMax = 5.0f 
+    };
 
-    [Header("Valores em Tempo Real (Leitura)")]
-    public float valorPotenciometro = 0f;
-    public float coeficienteA = 0f;
-
-    private float ultimoAngulo = 0f;
-    private bool primeiraVez = true;
+    [Tooltip("Controla o termo independente 'c'")]
+    public ParametroAruco parametroC = new ParametroAruco 
+    { 
+        nome = "c (Intercepto Y)", 
+        idAlvo = 44, 
+        valorAtual = 0.0f, 
+        sensibilidade = 0.01f, 
+        limitarValor = true, 
+        valorMin = -5.0f, 
+        valorMax = 5.0f 
+    };
 
     [DllImport("MinhaArucoDLL2")]
     private static extern int DetectarAruco(IntPtr pixels, int width, int height, int channels, float[] outCorners);
 
     void Start()
     {
-        // Se não foi associado no Inspector, procura na cena ou cria um automaticamente
+        parametroA.Inicializar(1.0f);
+        parametroB.Inicializar(0.0f);
+        parametroC.Inicializar(0.0f);
+
         if (visualizadorFuncao == null)
         {
             visualizadorFuncao = FindAnyObjectByType<VisualizadorFuncaoQuadratica>();
@@ -55,6 +135,11 @@ public class RastreadorAruco : MonoBehaviour
                 GameObject objVisualizador = new GameObject("Visualizador_Funcao_Quadratica");
                 visualizadorFuncao = objVisualizador.AddComponent<VisualizadorFuncaoQuadratica>();
             }
+        }
+
+        if (visualizadorFuncao != null)
+        {
+            visualizadorFuncao.AtualizarCoeficientes(parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
         }
     }
 
@@ -87,12 +172,9 @@ public class RastreadorAruco : MonoBehaviour
         {
             int idEncontrado = DetectarAruco(ponteiroPixels, image.width, image.height, channels, cantos);
 
-            // Verifica especificamente o ArUco alvo (ID 42)
-            if (idEncontrado == idAlvo)
+            if (idEncontrado != -1)
             {
-                // Cantos do marcador:
-                // canto 0: (cantos[0], cantos[1])
-                // canto 1: (cantos[2], cantos[3])
+                // Ângulo do marcador detectado
                 float x0 = cantos[0];
                 float y0 = cantos[1];
                 float x1 = cantos[2];
@@ -100,48 +182,47 @@ public class RastreadorAruco : MonoBehaviour
 
                 float dx = x1 - x0;
                 float dy = y1 - y0;
-
-                // Ângulo de rotação do marcador em graus
                 float anguloAtual = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
 
-                if (modo == ModoRotacao.PotenciometroContinuo)
+                if (idEncontrado == parametroA.idAlvo)
                 {
-                    if (primeiraVez)
-                    {
-                        ultimoAngulo = anguloAtual;
-                        primeiraVez = false;
-                    }
+                    parametroA.ProcessarRotacao(anguloAtual, modo);
+                    parametroB.ResetarGiro();
+                    parametroC.ResetarGiro();
 
-                    // Delta relativo entre frames evita saltos bruscos na transição de -180° / +180°
-                    float giro = Mathf.DeltaAngle(ultimoAngulo, anguloAtual);
-                    valorPotenciometro += giro;
-                    ultimoAngulo = anguloAtual;
+                    if (visualizadorFuncao != null)
+                        visualizadorFuncao.AtualizarCoeficienteA(parametroA.valorAtual);
 
-                    coeficienteA = valorPotenciometro * sensibilidade;
+                    Debug.Log($"[ArUco {parametroA.idAlvo}] Coeficiente 'a' = {parametroA.valorAtual:F2}");
                 }
-                else // AnguloAbsoluto
+                else if (idEncontrado == parametroB.idAlvo)
                 {
-                    coeficienteA = anguloAtual * sensibilidade;
-                }
+                    parametroB.ProcessarRotacao(anguloAtual, modo);
+                    parametroA.ResetarGiro();
+                    parametroC.ResetarGiro();
 
-                if (limitarValor)
+                    if (visualizadorFuncao != null)
+                        visualizadorFuncao.AtualizarCoeficienteB(parametroB.valorAtual);
+
+                    Debug.Log($"[ArUco {parametroB.idAlvo}] Coeficiente 'b' = {parametroB.valorAtual:F2}");
+                }
+                else if (idEncontrado == parametroC.idAlvo)
                 {
-                    coeficienteA = Mathf.Clamp(coeficienteA, valorMin, valorMax);
-                    if (modo == ModoRotacao.PotenciometroContinuo)
-                        valorPotenciometro = coeficienteA / sensibilidade;
-                }
+                    parametroC.ProcessarRotacao(anguloAtual, modo);
+                    parametroA.ResetarGiro();
+                    parametroB.ResetarGiro();
 
-                // Atualiza o gráfico em tempo real
-                if (visualizadorFuncao != null)
-                {
-                    visualizadorFuncao.AtualizarCoeficienteA(coeficienteA);
-                }
+                    if (visualizadorFuncao != null)
+                        visualizadorFuncao.AtualizarCoeficienteC(parametroC.valorAtual);
 
-                Debug.Log($"[ArUco {idAlvo}] Ângulo: {anguloAtual:F1}° | Coeficiente 'a': {coeficienteA:F2} | f(x) = {coeficienteA:F2}x²");
+                    Debug.Log($"[ArUco {parametroC.idAlvo}] Coeficiente 'c' = {parametroC.valorAtual:F2}");
+                }
             }
             else
             {
-                primeiraVez = true;
+                parametroA.ResetarGiro();
+                parametroB.ResetarGiro();
+                parametroC.ResetarGiro();
             }
         }
         catch (Exception e)

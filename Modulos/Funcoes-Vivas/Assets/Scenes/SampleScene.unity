@@ -401,15 +401,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RastreadorAruco
   cameraManager: {fileID: 1974343174}
-  idAlvo: 42
   visualizadorFuncao: {fileID: 1024601104}
   modo: 0
-  sensibilidade: 0.01
-  limitarValor: 1
-  valorMin: -5
-  valorMax: 5
-  valorPotenciometro: 0
-  coeficienteA: 0
+  parametroA:
+    nome: "a (Curvatura x\xB2)"
+    idAlvo: 42
+    valorAtual: 1
+    sensibilidade: 0.01
+    limitarValor: 1
+    valorMin: -5
+    valorMax: 5
+    valorPotenciometro: 0
+    ultimoAngulo: 0
+    primeiraVez: 1
+  parametroB:
+    nome: "b (Inclina\xE7\xE3o x)"
+    idAlvo: 43
+    valorAtual: 0
+    sensibilidade: 0.01
+    limitarValor: 1
+    valorMin: -5
+    valorMax: 5
+    valorPotenciometro: 0
+    ultimoAngulo: 0
+    primeiraVez: 1
+  parametroC:
+    nome: c (Intercepto Y)
+    idAlvo: 44
+    valorAtual: 0
+    sensibilidade: 0.01
+    limitarValor: 1
+    valorMin: -5
+    valorMax: 5
+    valorPotenciometro: 0
+    ultimoAngulo: 0
+    primeiraVez: 1
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -615,6 +641,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VisualizadorFuncaoQuadratica
   coeficienteA: 1
+  coeficienteB: 0
+  coeficienteC: 0
   resolucao: 100
   xMin: -2
   xMax: 2
@@ -625,7 +653,7 @@ MonoBehaviour:
   corEixos: {r: 1, g: 1, b: 1, a: 0.45}
   espessuraEixos: 0.008
   seguirCamera: 1
-  distanciaCamera: 1
+  distanciaCamera: 2
   offsetCamera: {x: 0, y: -0.1, z: 0}
   suavizacaoSeguir: 5
   linhaParabola: {fileID: 1024601103}
