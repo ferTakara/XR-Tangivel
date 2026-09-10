@@ -118,8 +118,21 @@ public class RastreadorAruco : MonoBehaviour
         valorMax = 5.0f 
     };
 
+    // Suporta detecção de múltiplos marcadores simultaneamente na mesma imagem
     [DllImport("MinhaArucoDLL2")]
-    private static extern int DetectarAruco(IntPtr pixels, int width, int height, int channels, float[] outCorners);
+    private static extern int DetectarMultiplosArucos(
+        IntPtr pixels, 
+        int width, 
+        int height, 
+        int channels, 
+        int maxMarcadores, 
+        int[] outIds, 
+        float[] outCorners
+    );
+
+    private const int MAX_MARCADORES = 10;
+    private int[] bufferIds = new int[MAX_MARCADORES];
+    private float[] bufferCantos = new float[MAX_MARCADORES * 8];
 
     void Start()
     {
@@ -163,66 +176,70 @@ public class RastreadorAruco : MonoBehaviour
         }
 
         var planoY = image.GetPlane(0);
-        float[] cantos = new float[8];
-
         IntPtr ponteiroPixels = (IntPtr)planoY.data.GetUnsafePtr();
         int channels = planoY.pixelStride; // 4 no Unity Editor e 1 no Celular
         
         try 
         {
-            int idEncontrado = DetectarAruco(ponteiroPixels, image.width, image.height, channels, cantos);
+            int totalDetectados = DetectarMultiplosArucos(
+                ponteiroPixels, 
+                image.width, 
+                image.height, 
+                channels, 
+                MAX_MARCADORES, 
+                bufferIds, 
+                bufferCantos
+            );
 
-            if (idEncontrado != -1)
+            bool achouA = false;
+            bool achouB = false;
+            bool achouC = false;
+
+            for (int i = 0; i < totalDetectados; i++)
             {
-                // Ângulo do marcador detectado
-                float x0 = cantos[0];
-                float y0 = cantos[1];
-                float x1 = cantos[2];
-                float y1 = cantos[3];
+                int id = bufferIds[i];
+
+                // 8 floats por marcador: (x0, y0, x1, y1, x2, y2, x3, y3)
+                int offset = i * 8;
+                float x0 = bufferCantos[offset + 0];
+                float y0 = bufferCantos[offset + 1];
+                float x1 = bufferCantos[offset + 2];
+                float y1 = bufferCantos[offset + 3];
 
                 float dx = x1 - x0;
                 float dy = y1 - y0;
                 float anguloAtual = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
 
-                if (idEncontrado == parametroA.idAlvo)
+                if (id == parametroA.idAlvo)
                 {
                     parametroA.ProcessarRotacao(anguloAtual, modo);
-                    parametroB.ResetarGiro();
-                    parametroC.ResetarGiro();
-
-                    if (visualizadorFuncao != null)
-                        visualizadorFuncao.AtualizarCoeficienteA(parametroA.valorAtual);
-
-                    Debug.Log($"[ArUco {parametroA.idAlvo}] Coeficiente 'a' = {parametroA.valorAtual:F2}");
+                    achouA = true;
                 }
-                else if (idEncontrado == parametroB.idAlvo)
+                else if (id == parametroB.idAlvo)
                 {
                     parametroB.ProcessarRotacao(anguloAtual, modo);
-                    parametroA.ResetarGiro();
-                    parametroC.ResetarGiro();
-
-                    if (visualizadorFuncao != null)
-                        visualizadorFuncao.AtualizarCoeficienteB(parametroB.valorAtual);
-
-                    Debug.Log($"[ArUco {parametroB.idAlvo}] Coeficiente 'b' = {parametroB.valorAtual:F2}");
+                    achouB = true;
                 }
-                else if (idEncontrado == parametroC.idAlvo)
+                else if (id == parametroC.idAlvo)
                 {
                     parametroC.ProcessarRotacao(anguloAtual, modo);
-                    parametroA.ResetarGiro();
-                    parametroB.ResetarGiro();
-
-                    if (visualizadorFuncao != null)
-                        visualizadorFuncao.AtualizarCoeficienteC(parametroC.valorAtual);
-
-                    Debug.Log($"[ArUco {parametroC.idAlvo}] Coeficiente 'c' = {parametroC.valorAtual:F2}");
+                    achouC = true;
                 }
             }
-            else
+
+            // Se algum marcador específico não esteve visível neste frame, reseta seu delta
+            if (!achouA) parametroA.ResetarGiro();
+            if (!achouB) parametroB.ResetarGiro();
+            if (!achouC) parametroC.ResetarGiro();
+
+            // Atualiza o gráfico com todos os coeficientes calculados simultaneamente!
+            if ((achouA || achouB || achouC) && visualizadorFuncao != null)
             {
-                parametroA.ResetarGiro();
-                parametroB.ResetarGiro();
-                parametroC.ResetarGiro();
+                visualizadorFuncao.AtualizarCoeficientes(
+                    parametroA.valorAtual, 
+                    parametroB.valorAtual, 
+                    parametroC.valorAtual
+                );
             }
         }
         catch (Exception e)
