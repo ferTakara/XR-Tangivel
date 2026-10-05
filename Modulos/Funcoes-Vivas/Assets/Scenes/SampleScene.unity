@@ -496,6 +496,7 @@ GameObject:
   - component: {fileID: 1024601102}
   - component: {fileID: 1024601103}
   - component: {fileID: 1024601104}
+  - component: {fileID: 1024601105}
   m_Layer: 0
   m_Name: GraphManager
   m_TagString: Untagged
@@ -659,6 +660,20 @@ MonoBehaviour:
   linhaParabola: {fileID: 1024601103}
   linhaEixos: {fileID: 0}
   textoEquacao: {fileID: 0}
+--- !u!114 &1024601105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024601101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32ff536ce3e212d4dbb7900215398672, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GeradorDesafioQuadratica
+  visualizador: {fileID: 1024601104}
+  margemAcerto: 0.2
 --- !u!1 &1973999876
 GameObject:
   m_ObjectHideFlags: 0

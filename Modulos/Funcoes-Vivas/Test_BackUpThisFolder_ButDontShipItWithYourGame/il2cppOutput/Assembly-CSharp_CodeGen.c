@@ -1,0 +1,135 @@
+﻿#include "pch-c.h"
+
+
+#include "codegen/il2cpp-codegen-metadata.h"
+
+
+
+
+
+extern void GeradorDesafioQuadratica_Start_m46D78258DCA3EC10C0DBE572792A18709C02DD54 (void);
+extern void GeradorDesafioQuadratica_GerarNovoDesafio_m73D6149EC2A862E19AA96C7CD06E1015BC7E4279 (void);
+extern void GeradorDesafioQuadratica_DefinirCor_mC2DF47AAEA9DCAC968586D31E4A9B5F1546FBD0C (void);
+extern void GeradorDesafioQuadratica_Update_m839946CC00959D7EA8182EE6275843F46293C044 (void);
+extern void GeradorDesafioQuadratica_VerificarVitoria_m18402D547DBCB3F8B108EA0A5E2D4D3054476F79 (void);
+extern void GeradorDesafioQuadratica_SorteioArredondado_m90114CA15B18E2DB7616882E88FB4FB921E51224 (void);
+extern void GeradorDesafioQuadratica__ctor_m1672C98F0A8F8F08BD3C4974A40EB06A716B6F85 (void);
+extern void RastreadorAruco_DetectarMultiplosArucos_m490AFE2DD5FBAD0A2FA688D3BB782264A9F04C77 (void);
+extern void RastreadorAruco_Start_mB48E6D917DA0578F6A4C36814B0ADDD3585E713D (void);
+extern void RastreadorAruco_OnEnable_m1F8299213B58B9E41495311DE8514AA6DFCE02F0 (void);
+extern void RastreadorAruco_OnDisable_mDEE69E2D76BF18D358710D091809D1450C4C53A1 (void);
+extern void RastreadorAruco_OnCameraFrameReceived_mF1B0433D76306367416CF3CEA4000F0991AD5E69 (void);
+extern void RastreadorAruco__ctor_m213287529AF82FA5A37DAB0B4C9303A3D05FD854 (void);
+extern void ParametroAruco_Inicializar_mCE1A245FA419A1CEDDD2F61A72FC09B5B3517627 (void);
+extern void ParametroAruco_ProcessarRotacao_m600B0E03AF330F42573D8885D5D4B79B1C7D1358 (void);
+extern void ParametroAruco_ResetarGiro_m38FEB90F151EAF53E1C5E87946F6EAA03EDCD350 (void);
+extern void ParametroAruco__ctor_m94E67E13C5B17F32295B117BCE2F5A8634811930 (void);
+extern void Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6 (void);
+extern void Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B (void);
+extern void VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE (void);
+extern void VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0 (void);
+extern void VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443 (void);
+extern void VisualizadorFuncaoQuadratica_ConfigurarComponentes_mDC48B71EBA2ED187A097A7BB893DD46B1B1E894D (void);
+extern void VisualizadorFuncaoQuadratica_AtualizarCoeficientes_mBCD2AAC3657FB152A7392D17D7CD1E31E92951F3 (void);
+extern void VisualizadorFuncaoQuadratica_AtualizarCoeficienteA_m8AA00B6B28BD7442A0D138EEB3E2B64C382D9EDE (void);
+extern void VisualizadorFuncaoQuadratica_AtualizarCoeficienteB_mD9E160D8B9E105A31D19A431A41E434BA1A2B999 (void);
+extern void VisualizadorFuncaoQuadratica_AtualizarCoeficienteC_mBC0247FB2792B242A0C54443C5CF44A5997D84E9 (void);
+extern void VisualizadorFuncaoQuadratica_RedesenharGrafico_mC44611F6E3D0129FAC8B54E97F327932B77E3D76 (void);
+extern void VisualizadorFuncaoQuadratica_FormatarEquacao_mC3F47B32A736A706AB5EF9553B027A8CB863BD48 (void);
+extern void VisualizadorFuncaoQuadratica_ObterDetalhesMatematicos_m2839E1D917747EF049F62998FD5AB12083F1AC4F (void);
+extern void VisualizadorFuncaoQuadratica_DesenharEixosCartesianos_mB9ECCB8347F5E93BA215579B7CCB72DA217EAA99 (void);
+extern void VisualizadorFuncaoQuadratica_CriarMaterialUnlit_m94127AD71EE4F57DBD4E868A7E9101C6D964F6AD (void);
+extern void VisualizadorFuncaoQuadratica__ctor_mE1A7EEDB1629FDEBAC1E90F2C9EF378F48E1456A (void);
+static Il2CppMethodPointer s_methodPointers[33] = 
+{
+	GeradorDesafioQuadratica_Start_m46D78258DCA3EC10C0DBE572792A18709C02DD54,
+	GeradorDesafioQuadratica_GerarNovoDesafio_m73D6149EC2A862E19AA96C7CD06E1015BC7E4279,
+	GeradorDesafioQuadratica_DefinirCor_mC2DF47AAEA9DCAC968586D31E4A9B5F1546FBD0C,
+	GeradorDesafioQuadratica_Update_m839946CC00959D7EA8182EE6275843F46293C044,
+	GeradorDesafioQuadratica_VerificarVitoria_m18402D547DBCB3F8B108EA0A5E2D4D3054476F79,
+	GeradorDesafioQuadratica_SorteioArredondado_m90114CA15B18E2DB7616882E88FB4FB921E51224,
+	GeradorDesafioQuadratica__ctor_m1672C98F0A8F8F08BD3C4974A40EB06A716B6F85,
+	RastreadorAruco_DetectarMultiplosArucos_m490AFE2DD5FBAD0A2FA688D3BB782264A9F04C77,
+	RastreadorAruco_Start_mB48E6D917DA0578F6A4C36814B0ADDD3585E713D,
+	RastreadorAruco_OnEnable_m1F8299213B58B9E41495311DE8514AA6DFCE02F0,
+	RastreadorAruco_OnDisable_mDEE69E2D76BF18D358710D091809D1450C4C53A1,
+	RastreadorAruco_OnCameraFrameReceived_mF1B0433D76306367416CF3CEA4000F0991AD5E69,
+	RastreadorAruco__ctor_m213287529AF82FA5A37DAB0B4C9303A3D05FD854,
+	ParametroAruco_Inicializar_mCE1A245FA419A1CEDDD2F61A72FC09B5B3517627,
+	ParametroAruco_ProcessarRotacao_m600B0E03AF330F42573D8885D5D4B79B1C7D1358,
+	ParametroAruco_ResetarGiro_m38FEB90F151EAF53E1C5E87946F6EAA03EDCD350,
+	ParametroAruco__ctor_m94E67E13C5B17F32295B117BCE2F5A8634811930,
+	Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6,
+	Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B,
+	VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE,
+	VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0,
+	VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443,
+	VisualizadorFuncaoQuadratica_ConfigurarComponentes_mDC48B71EBA2ED187A097A7BB893DD46B1B1E894D,
+	VisualizadorFuncaoQuadratica_AtualizarCoeficientes_mBCD2AAC3657FB152A7392D17D7CD1E31E92951F3,
+	VisualizadorFuncaoQuadratica_AtualizarCoeficienteA_m8AA00B6B28BD7442A0D138EEB3E2B64C382D9EDE,
+	VisualizadorFuncaoQuadratica_AtualizarCoeficienteB_mD9E160D8B9E105A31D19A431A41E434BA1A2B999,
+	VisualizadorFuncaoQuadratica_AtualizarCoeficienteC_mBC0247FB2792B242A0C54443C5CF44A5997D84E9,
+	VisualizadorFuncaoQuadratica_RedesenharGrafico_mC44611F6E3D0129FAC8B54E97F327932B77E3D76,
+	VisualizadorFuncaoQuadratica_FormatarEquacao_mC3F47B32A736A706AB5EF9553B027A8CB863BD48,
+	VisualizadorFuncaoQuadratica_ObterDetalhesMatematicos_m2839E1D917747EF049F62998FD5AB12083F1AC4F,
+	VisualizadorFuncaoQuadratica_DesenharEixosCartesianos_mB9ECCB8347F5E93BA215579B7CCB72DA217EAA99,
+	VisualizadorFuncaoQuadratica_CriarMaterialUnlit_m94127AD71EE4F57DBD4E868A7E9101C6D964F6AD,
+	VisualizadorFuncaoQuadratica__ctor_mE1A7EEDB1629FDEBAC1E90F2C9EF378F48E1456A,
+};
+static const int32_t s_InvokerIndices[33] = 
+{
+	12055,
+	12055,
+	3818,
+	12055,
+	12055,
+	2092,
+	12055,
+	12605,
+	12055,
+	12055,
+	12055,
+	8882,
+	12055,
+	9268,
+	4958,
+	12055,
+	12055,
+	12055,
+	12055,
+	12055,
+	12055,
+	12055,
+	12055,
+	2401,
+	9268,
+	9268,
+	9268,
+	12055,
+	11565,
+	11565,
+	12055,
+	11565,
+	12055,
+};
+IL2CPP_EXTERN_C const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule;
+const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule = 
+{
+	"Assembly-CSharp.dll",
+	33,
+	s_methodPointers,
+	0,
+	NULL,
+	s_InvokerIndices,
+	0,
+	NULL,
+	0,
+	NULL,
+	0,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
