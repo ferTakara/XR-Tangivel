@@ -23567,7 +23567,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR intptr_t MarshalledUnityObject_MarshalNotNull
 		return L_1;
 	}
 }
-// Method Definition Index: 106295
+// Method Definition Index: 106299
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR NativeArray_1_t880C01E5EE92F4CE738A6229CF0AC0560328BE3A PhysicsBuffer2D_ToNativeArray_TisRaycastHit2D_t3EAAA06E6603C6BC61AC1291DD881C5C1E23BDFA_m08990BFCA53A880B50E8DBAEEBAA1821A93AAFB8_gshared (PhysicsBuffer2D_t406A28071CAE2BF9C3913B50E10519386736A46A* __this, const RuntimeMethod* method) 
 {
 	il2cpp_rgctx_method_init(method);
@@ -23607,7 +23607,7 @@ IL2CPP_EXTERN_C  NativeArray_1_t880C01E5EE92F4CE738A6229CF0AC0560328BE3A Physics
 	_returnValue = PhysicsBuffer2D_ToNativeArray_TisRaycastHit2D_t3EAAA06E6603C6BC61AC1291DD881C5C1E23BDFA_m08990BFCA53A880B50E8DBAEEBAA1821A93AAFB8(_thisAdjusted, method);
 	return _returnValue;
 }
-// Method Definition Index: 106295
+// Method Definition Index: 106299
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1AFC80AC1E18 PhysicsBuffer2D_ToNativeArray_TisIl2CppFullySharedGenericStruct_mE58A8C0EF2880F46C913FB25694F2903F16F2A0D_gshared (PhysicsBuffer2D_t406A28071CAE2BF9C3913B50E10519386736A46A* __this, const RuntimeMethod* method) 
 {
 	il2cpp_rgctx_method_init(method);

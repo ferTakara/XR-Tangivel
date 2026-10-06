@@ -12516,7 +12516,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void PointerState_set_LastPositio
 		return;
 	}
 }
-// Method Definition Index: 106805
+// Method Definition Index: 106809
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_type_mB505EF2DCF13160DFA0C6AAF406DCB4CBED20745_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12525,7 +12525,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_type_mB505EF2DC
 		return L_0;
 	}
 }
-// Method Definition Index: 106802
+// Method Definition Index: 106806
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_phase_mB82409FB2BE1C32ABDBA6A72E52A099D28AB70B0_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12534,7 +12534,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_phase_mB82409FB
 		return L_0;
 	}
 }
-// Method Definition Index: 106793
+// Method Definition Index: 106797
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_fingerId_mC1DCE93BFA0574960A3AE5329AE6C5F7E06962BD_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12543,7 +12543,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t Touch_get_fingerId_mC1DCE
 		return L_0;
 	}
 }
-// Method Definition Index: 106794
+// Method Definition Index: 106798
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Touch_get_position_m41B9EB0F3F3E1BE98CEB388253A9E31979CB964A_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12552,7 +12552,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2D
 		return L_0;
 	}
 }
-// Method Definition Index: 106798
+// Method Definition Index: 106802
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2DC8CBA08B739D8DF7 Touch_get_deltaPosition_m2D51F960B74C94821ED0F6A09E44C80FD796D299_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12576,7 +12576,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Vector2_t1FD6F485C871E832B347AB2D
 		return L_0;
 	}
 }
-// Method Definition Index: 106806
+// Method Definition Index: 106810
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_altitudeAngle_m26DEF010E2CDC23F4FADE8E49A986D557C07D391_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12585,7 +12585,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_altitudeAngle_m26
 		return L_0;
 	}
 }
-// Method Definition Index: 106807
+// Method Definition Index: 106811
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_azimuthAngle_m2F11532183492E608922A2F9D9EC9AC31D34F490_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12594,7 +12594,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_azimuthAngle_m2F1
 		return L_0;
 	}
 }
-// Method Definition Index: 106804
+// Method Definition Index: 106808
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_maximumPossiblePressure_m2D147A58465EB39B397722D8597CF9E06AC85FAE_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12603,7 +12603,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_maximumPossiblePr
 		return L_0;
 	}
 }
-// Method Definition Index: 106803
+// Method Definition Index: 106807
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR float Touch_get_pressure_mB8214D0E920156CA4679BAC03E86106E8E4BDA5C_inline (Touch_t03E51455ED508492B3F278903A0114FA0E87B417* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

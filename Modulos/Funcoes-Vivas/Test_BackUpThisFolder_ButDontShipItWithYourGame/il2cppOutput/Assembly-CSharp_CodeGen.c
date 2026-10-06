@@ -43,6 +43,10 @@ extern void ParametroAruco_ResetarGiro_m38FEB90F151EAF53E1C5E87946F6EAA03EDCD350
 extern void ParametroAruco__ctor_m94E67E13C5B17F32295B117BCE2F5A8634811930 (void);
 extern void RastreadorMaoAR_Awake_m72592724356968B856E948292022B5DA9A1FE93D (void);
 extern void RastreadorMaoAR_Start_m878FDB19FFE26DE6B31CBA6BE0743441455372F5 (void);
+extern void RastreadorMaoAR_Update_m39FA4850BFB4521072D34E064362A6028D8D7421 (void);
+extern void RastreadorMaoAR_ProcessarGestoPinch_mE53ED72864DA233B63D027FA6A588713CF74436A (void);
+extern void RastreadorMaoAR_SoltarPinch_mAB97BB03940E7F18F1C11033916DE838C0F4B56E (void);
+extern void RastreadorMaoAR_AtualizarCorPinch_mF7CA6FDFE23ECD9F46CE93611270B280765902F2 (void);
 extern void RastreadorMaoAR_OnEnable_mAAD49ED62234FA2968D44F5424007FDF8688143C (void);
 extern void RastreadorMaoAR_OnDisable_m2BFE2CBDB1C0222AB3598FFDBA378708867C5336 (void);
 extern void RastreadorMaoAR_OnDestroy_mC3F3A7044C30FAF4DA90519DA63CE4C66F688922 (void);
@@ -53,8 +57,8 @@ extern void RastreadorMaoAR_CriarMaterialUnlit_mAC38D92E372322EACFCE05461E9F048D
 extern void RastreadorMaoAR_OnCameraFrameReceived_m90A8044757720292724F80CE0902A94D471B78D9 (void);
 extern void RastreadorMaoAR_ProcessarInferenciaAsync_m3B39D57AFF2E1313172BE5A876F552B8CC7EC1F9 (void);
 extern void RastreadorMaoAR__ctor_mB6196C2DC43EA662078B9C1B3EDB40371222E871 (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__43_MoveNext_m4E31497067254A6F383A01972C2DDD2CBF7BEFCC (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__43_SetStateMachine_m9C4ECC519D99302019C53B7A440CEB849AED1873 (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77 (void);
 extern void VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE (void);
 extern void VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0 (void);
 extern void VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443 (void);
@@ -71,7 +75,7 @@ extern void VisualizadorFuncaoQuadratica_CriarMaterialUnlit_m94127AD71EE4F57DBD4
 extern void VisualizadorFuncaoQuadratica__ctor_mE1A7EEDB1629FDEBAC1E90F2C9EF378F48E1456A (void);
 extern void Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6 (void);
 extern void Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B (void);
-static Il2CppMethodPointer s_methodPointers[64] = 
+static Il2CppMethodPointer s_methodPointers[68] = 
 {
 	BlazeUtils_mul_m6F034BF4A75E4C351473E1CA71B53CE8B6E7D1D8,
 	BlazeUtils_mul_mCAC23367B90FC4927A16563C97A0B0AA0C499901,
@@ -109,6 +113,10 @@ static Il2CppMethodPointer s_methodPointers[64] =
 	ParametroAruco__ctor_m94E67E13C5B17F32295B117BCE2F5A8634811930,
 	RastreadorMaoAR_Awake_m72592724356968B856E948292022B5DA9A1FE93D,
 	RastreadorMaoAR_Start_m878FDB19FFE26DE6B31CBA6BE0743441455372F5,
+	RastreadorMaoAR_Update_m39FA4850BFB4521072D34E064362A6028D8D7421,
+	RastreadorMaoAR_ProcessarGestoPinch_mE53ED72864DA233B63D027FA6A588713CF74436A,
+	RastreadorMaoAR_SoltarPinch_mAB97BB03940E7F18F1C11033916DE838C0F4B56E,
+	RastreadorMaoAR_AtualizarCorPinch_mF7CA6FDFE23ECD9F46CE93611270B280765902F2,
 	RastreadorMaoAR_OnEnable_mAAD49ED62234FA2968D44F5424007FDF8688143C,
 	RastreadorMaoAR_OnDisable_m2BFE2CBDB1C0222AB3598FFDBA378708867C5336,
 	RastreadorMaoAR_OnDestroy_mC3F3A7044C30FAF4DA90519DA63CE4C66F688922,
@@ -119,8 +127,8 @@ static Il2CppMethodPointer s_methodPointers[64] =
 	RastreadorMaoAR_OnCameraFrameReceived_m90A8044757720292724F80CE0902A94D471B78D9,
 	RastreadorMaoAR_ProcessarInferenciaAsync_m3B39D57AFF2E1313172BE5A876F552B8CC7EC1F9,
 	RastreadorMaoAR__ctor_mB6196C2DC43EA662078B9C1B3EDB40371222E871,
-	U3CProcessarInferenciaAsyncU3Ed__43_MoveNext_m4E31497067254A6F383A01972C2DDD2CBF7BEFCC,
-	U3CProcessarInferenciaAsyncU3Ed__43_SetStateMachine_m9C4ECC519D99302019C53B7A440CEB849AED1873,
+	U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F,
+	U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77,
 	VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE,
 	VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0,
 	VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443,
@@ -138,14 +146,14 @@ static Il2CppMethodPointer s_methodPointers[64] =
 	Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6,
 	Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B,
 };
-extern void U3CProcessarInferenciaAsyncU3Ed__43_MoveNext_m4E31497067254A6F383A01972C2DDD2CBF7BEFCC_AdjustorThunk (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__43_SetStateMachine_m9C4ECC519D99302019C53B7A440CEB849AED1873_AdjustorThunk (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F_AdjustorThunk (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77_AdjustorThunk (void);
 static Il2CppTokenAdjustorThunkPair s_adjustorThunks[2] = 
 {
-	{ 0x0600002F, U3CProcessarInferenciaAsyncU3Ed__43_MoveNext_m4E31497067254A6F383A01972C2DDD2CBF7BEFCC_AdjustorThunk },
-	{ 0x06000030, U3CProcessarInferenciaAsyncU3Ed__43_SetStateMachine_m9C4ECC519D99302019C53B7A440CEB849AED1873_AdjustorThunk },
+	{ 0x06000033, U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F_AdjustorThunk },
+	{ 0x06000034, U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77_AdjustorThunk },
 };
-static const int32_t s_InvokerIndices[64] = 
+static const int32_t s_InvokerIndices[68] = 
 {
 	19616,
 	19614,
@@ -186,6 +194,10 @@ static const int32_t s_InvokerIndices[64] =
 	14070,
 	14070,
 	14070,
+	10663,
+	14070,
+	14070,
+	14070,
 	14070,
 	14070,
 	14070,
@@ -216,7 +228,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule;
 const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule = 
 {
 	"Assembly-CSharp.dll",
-	64,
+	68,
 	s_methodPointers,
 	2,
 	s_adjustorThunks,
