@@ -23175,7 +23175,7 @@ struct CreationParameters_tC3AF64A7D0E7DAF87A587B34097DF91B377A9BD7
 	int32_t ___U3CcontrolUpdateSettingU3Ek__BackingField;
 	int32_t ___U3CrealtimeUpdateSettingU3Ek__BackingField;
 };
-struct U3CProcessarInferenciaAsyncU3Ed__40_t61898297A483BD82662589E00B3677E9E077113B 
+struct U3CProcessarInferenciaAsyncU3Ed__43_tEF992FDB8AC6FC36238A326683D672BDD448DC64 
 {
 	int32_t ___U3CU3E1__state;
 	AsyncVoidMethodBuilder_t253E37B63E7E7B504878AE6563347C147F98EF2D ___U3CU3Et__builder;
@@ -31046,6 +31046,9 @@ struct RastreadorMaoAR_tEB874A1F3AD6FF96905323870E89965C14F21E33  : public MonoB
 	float ___tamanhoArticulacao;
 	float ___espessuraOsso;
 	float ___distanciaProfundidadeCamera;
+	bool ___inverterEixoX;
+	bool ___inverterEixoY;
+	bool ___trocarXeY;
 	Worker_tA26D4104BB9D52F94D10411345FBE85ABCF37ED5* ___detectorWorker;
 	Worker_tA26D4104BB9D52F94D10411345FBE85ABCF37ED5* ___landmarkerWorker;
 	Tensor_1_tF7D2A544E958ACBBDF69FBFE22DB56B8D49776E4* ___detectorInputTensor;
@@ -40950,27 +40953,27 @@ const Il2CppTypeDefinitionSizes g_typeDefinitionSize13692 = { sizeof(UISystemPro
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13693;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize13693 = { sizeof(U3CModuleU3E_tBB65183F1134474D09FF49B95625D25472B9BA8B), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13694;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13694 = { sizeof(GeradorDesafioQuadratica_t708F6E198672F2697A9B1772937CF1B1C9AA82C4), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13694 = { sizeof(BlazeUtils_tEE75DF6A2838EF169EF9DB1F5B5B527C83ABFB0E), -1, sizeof(BlazeUtils_tEE75DF6A2838EF169EF9DB1F5B5B527C83ABFB0E_StaticFields), 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13695;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13695 = { sizeof(GestosToqueMobile_tA8807D72170C66078461AE7523B39BE768D33598), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13695 = { sizeof(GeradorDesafioQuadratica_t708F6E198672F2697A9B1772937CF1B1C9AA82C4), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13696;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13696 = { sizeof(int32_t)+ sizeof(RuntimeObject), sizeof(int32_t), 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13696 = { sizeof(GestosToqueMobile_tA8807D72170C66078461AE7523B39BE768D33598), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13697;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13697 = { sizeof(ParametroAruco_t271D6B9DA79E351F0317FCB1C56BF9CC59591BAA), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13697 = { sizeof(int32_t)+ sizeof(RuntimeObject), sizeof(int32_t), 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13698;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13698 = { sizeof(RastreadorAruco_tE960E38F668136695502E3B35656771C842BED81), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13698 = { sizeof(ParametroAruco_t271D6B9DA79E351F0317FCB1C56BF9CC59591BAA), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13699;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13699 = { sizeof(BlazeUtils_tEE75DF6A2838EF169EF9DB1F5B5B527C83ABFB0E), -1, sizeof(BlazeUtils_tEE75DF6A2838EF169EF9DB1F5B5B527C83ABFB0E_StaticFields), 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13699 = { sizeof(RastreadorAruco_tE960E38F668136695502E3B35656771C842BED81), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13700;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13700 = { sizeof(U3CProcessarInferenciaAsyncU3Ed__40_t61898297A483BD82662589E00B3677E9E077113B)+ sizeof(RuntimeObject), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13700 = { sizeof(U3CProcessarInferenciaAsyncU3Ed__43_tEF992FDB8AC6FC36238A326683D672BDD448DC64)+ sizeof(RuntimeObject), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13701;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize13701 = { sizeof(RastreadorMaoAR_tEB874A1F3AD6FF96905323870E89965C14F21E33), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13702;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13702 = { sizeof(Section_t50C894D0A717C2368EBAAE5477D4E8626D0B5401), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13702 = { sizeof(VisualizadorFuncaoQuadratica_tE9F6226630BDEEAACF47C799B93A04675E46FFCB), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13703;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13703 = { sizeof(Readme_tE17B99201D0F52BD5727638AD3F41072A65B3BBB), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13703 = { sizeof(Section_t50C894D0A717C2368EBAAE5477D4E8626D0B5401), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13704;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize13704 = { sizeof(VisualizadorFuncaoQuadratica_tE9F6226630BDEEAACF47C799B93A04675E46FFCB), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize13704 = { sizeof(Readme_tE17B99201D0F52BD5727638AD3F41072A65B3BBB), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13705;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize13705 = { sizeof(U3CModuleU3E_t3B74AF9E7E84B3C57D4687184E31363228069DF2), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize13706;

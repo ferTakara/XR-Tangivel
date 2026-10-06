@@ -1,22 +1,22 @@
-using System;
+﻿using System;
 using Unity.Mathematics;
 using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 
 /// <summary>
-/// Rastreia o esqueleto da mão (21 pontos 3D) em tempo real no celular usando Unity Sentis (Inference Engine)
+/// Rastreia o esqueleto da mÃƒÂ£o (21 pontos 3D) em tempo real no celular usando Unity Sentis (Inference Engine)
 /// e o modelo MediaPipe BlazeHand.
-/// Desenha o esqueleto anatômico da mão sobreposto à câmera com material Unlit brilhante.
+/// Desenha o esqueleto anatÃƒÂ´mico da mÃƒÂ£o sobreposto ÃƒÂ  cÃƒÂ¢mera com material Unlit brilhante.
 /// </summary>
 public class RastreadorMaoAR : MonoBehaviour
 {
-    [Header("Conexão com AR")]
+    [Header("ConexÃƒÂ£o com AR")]
     public ARCameraManager cameraManager;
     public ARCameraBackground cameraBackground;
     public Camera cameraAR;
 
-    [Header("Configurações do Modelo AI")]
+    [Header("ConfiguraÃƒÂ§ÃƒÂµes do Modelo AI")]
     public ModelAsset handDetectorAsset;
     public ModelAsset handLandmarkerAsset;
     public TextAsset anchorsCSVAsset;
@@ -28,7 +28,17 @@ public class RastreadorMaoAR : MonoBehaviour
     public Color corOssos = new Color(0.2f, 0.7f, 1.0f, 0.85f);       // Azul brilhante
     public float tamanhoArticulacao = 0.012f; // ~1.2 cm
     public float espessuraOsso = 0.005f;      // ~5 mm
-    public float distanciaProfundidadeCamera = 0.5f; // 50 cm à frente da câmera
+    public float distanciaProfundidadeCamera = 0.45f; // 45 cm ÃƒÂ  frente da cÃƒÂ¢mera
+
+    [Header("CalibraÃ§Ã£o de Alinhamento (Eixos da CÃ¢mera)")]
+    [Tooltip("Inverte o eixo X (esquerda/direita). Mantenha desmarcado por padrÃ£o.")]
+    public bool inverterEixoX = false;
+
+    [Tooltip("Inverte o eixo Y (cima/baixo). Mantenha desmarcado para nÃ£o ficar de cabeÃ§a para baixo.")]
+    public bool inverterEixoY = false;
+
+    [Tooltip("Troca os eixos X e Y (caso o sensor do celular esteja em 90 graus)")]
+    public bool trocarXeY = false;
 
     // Constantes do BlazeHand
     const int NUM_ANCHORS = 2016;
@@ -43,7 +53,7 @@ public class RastreadorMaoAR : MonoBehaviour
     private Tensor<float> landmarkerInputTensor;
     private float[,] anchorsData;
 
-    // Textura da câmera e processamento
+    // Textura da cÃƒÂ¢mera e processamento
     private RenderTexture renderTextureCamera;
     private bool estaProcessando = false;
     private bool modelosCarregados = false;
@@ -55,20 +65,20 @@ public class RastreadorMaoAR : MonoBehaviour
     private Vector3[] posicoes3D = new Vector3[NUM_KEYPOINTS];
     private bool maoDetectada = false;
 
-    // Definição das conexões anatômicas dos ossos da mão (Pares de índices de 0 a 20)
+    // DefiniÃƒÂ§ÃƒÂ£o das conexÃƒÂµes anatÃƒÂ´micas dos ossos da mÃƒÂ£o (Pares de ÃƒÂ­ndices de 0 a 20)
     private readonly int[][] conexoesOssos = new int[][]
     {
         // Polegar
         new int[] { 0, 1 }, new int[] { 1, 2 }, new int[] { 2, 3 }, new int[] { 3, 4 },
         // Indicador
         new int[] { 0, 5 }, new int[] { 5, 6 }, new int[] { 6, 7 }, new int[] { 7, 8 },
-        // Médio
+        // MÃƒÂ©dio
         new int[] { 0, 9 }, new int[] { 9, 10 }, new int[] { 10, 11 }, new int[] { 11, 12 },
         // Anelar
         new int[] { 0, 13 }, new int[] { 13, 14 }, new int[] { 14, 15 }, new int[] { 15, 16 },
         // Mindinho
         new int[] { 0, 17 }, new int[] { 17, 18 }, new int[] { 18, 19 }, new int[] { 19, 20 },
-        // Palma (articulações da base dos dedos)
+        // Palma (articulaÃƒÂ§ÃƒÂµes da base dos dedos)
         new int[] { 5, 9 }, new int[] { 9, 13 }, new int[] { 13, 17 }
     };
 
@@ -230,7 +240,7 @@ public class RastreadorMaoAR : MonoBehaviour
             renderTextureCamera.Create();
         }
 
-        // Copia a imagem da câmera AR para o RenderTexture usando o material de fundo do AR
+        // Copia a imagem da cÃƒÂ¢mera AR para o RenderTexture usando o material de fundo do AR
         if (cameraBackground != null && cameraBackground.material != null)
         {
             Graphics.Blit(null, renderTextureCamera, cameraBackground.material);
@@ -248,7 +258,7 @@ public class RastreadorMaoAR : MonoBehaviour
             int texHeight = texture.height;
             float size = Mathf.Max(texWidth, texHeight);
 
-            // Matriz de transformação afim para o detector (192x192)
+            // Matriz de transformaÃƒÂ§ÃƒÂ£o afim para o detector (192x192)
             float scale = size / (float)DETECTOR_INPUT_SIZE;
             var M = BlazeUtils.mul(
                 BlazeUtils.TranslationMatrix(0.5f * (new Vector2(texWidth, texHeight) + new Vector2(-size, size))),
@@ -288,7 +298,7 @@ public class RastreadorMaoAR : MonoBehaviour
             boxCentre += 0.5f * boxSize * up;
             boxSize *= 2.6f;
 
-            // Recorta a região da palma para o detector de landmarks (224x224)
+            // Recorta a regiÃƒÂ£o da palma para o detector de landmarks (224x224)
             float2 origin2 = new float2(0.5f * LANDMARKER_INPUT_SIZE, 0.5f * LANDMARKER_INPUT_SIZE);
             float scale2 = boxSize / LANDMARKER_INPUT_SIZE;
             var M2 = BlazeUtils.mul(M, BlazeUtils.mul(BlazeUtils.mul(BlazeUtils.mul(
@@ -304,15 +314,28 @@ public class RastreadorMaoAR : MonoBehaviour
             var awaitLandmarks = tensorLandmarks.ReadbackAndCloneAsync();
             using var landmarks = await awaitLandmarks;
 
-            // Converte os 21 pontos para o espaço 3D do mundo real à frente da câmera AR
+            // Converte os 21 pontos para o espaÃƒÂ§o 3D do mundo real ÃƒÂ  frente da cÃƒÂ¢mera AR
             if (cameraAR != null)
             {
                 for (int i = 0; i < NUM_KEYPOINTS; i++)
                 {
                     float2 posImg = BlazeUtils.mul(M2, new float2(landmarks[3 * i + 0], landmarks[3 * i + 1]));
 
-                    float viewportX = posImg.x / (float)texWidth;
-                    float viewportY = 1.0f - (posImg.y / (float)texHeight);
+                    float normX = posImg.x / (float)texWidth;
+                    float normY = posImg.y / (float)texHeight;
+
+                    float vx = inverterEixoX ? (1.0f - normX) : normX;
+                    float vy = inverterEixoY ? (1.0f - normY) : normY;
+
+                    if (trocarXeY)
+                    {
+                        float temp = vx;
+                        vx = vy;
+                        vy = temp;
+                    }
+
+                    float viewportX = vx;
+                    float viewportY = vy;
                     float profRelativa = (landmarks[3 * i + 2] / (float)texHeight) * 0.25f;
 
                     Vector3 posMundo = cameraAR.ViewportToWorldPoint(new Vector3(
@@ -325,7 +348,7 @@ public class RastreadorMaoAR : MonoBehaviour
                     esferasArticulacoes[i].position = posMundo;
                 }
 
-                // Atualiza as conexões dos ossos
+                // Atualiza as conexÃƒÂµes dos ossos
                 for (int i = 0; i < conexoesOssos.Length; i++)
                 {
                     int idxStart = conexoesOssos[i][0];
