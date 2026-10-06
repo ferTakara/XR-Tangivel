@@ -155,6 +155,10 @@ public class RastreadorAruco : MonoBehaviour
     private float tempoSemDetectar40 = 0f;
     private const float TEMPO_TOLERANCIA_PERDA = 0.35f; // Mantém posição por 350ms antes de voltar ao modo egocêntrico
 
+    // Filtro Passa-Baixa 2D para estabilizar cantos e remover jitter do cálculo de Z
+    private Vector2[] cantosSuavizados40 = new Vector2[4];
+    private bool primeiraVez40 = true;
+
     void Start()
     {
         if (cameraAR == null)
@@ -296,6 +300,10 @@ public class RastreadorAruco : MonoBehaviour
             else
             {
                 marcador40Detectado = false;
+                if (tempoSemDetectar40 >= TEMPO_TOLERANCIA_PERDA)
+                {
+                    primeiraVez40 = true; // Reseta filtro ao perder marcador definitivamente
+                }
             }
 
             // Se algum marcador específico não esteve visível neste frame, reseta seu delta
@@ -330,87 +338,125 @@ public class RastreadorAruco : MonoBehaviour
         float x3, float y3,
         int imgWidth, int imgHeight)
     {
-        if (cameraAR == null)
-            cameraAR = Camera.main;
-
+        if (cameraAR == null) cameraAR = Camera.main;
         if (cameraAR == null) return;
 
-        // 1. Centro do marcador na imagem
-        float centroX = (x0 + x1 + x2 + x3) * 0.25f;
-        float centroY = (y0 + y1 + y2 + y3) * 0.25f;
+        // 1. Filtro passa-baixa 2D (Anti-Jitter)
+        Vector2 c0 = new Vector2(x0, y0);
+        Vector2 c1 = new Vector2(x1, y1);
+        Vector2 c2 = new Vector2(x2, y2);
+        Vector2 c3 = new Vector2(x3, y3);
 
-        float normX = centroX / (float)imgWidth;
-        float normY = 1.0f - (centroY / (float)imgHeight);
-
-        // 2. Estima a distância óptica Z de CADA CANTO até a câmera baseado nas larguras/alturas
-        float larguraTop = Vector2.Distance(new Vector2(x0, y0), new Vector2(x1, y1));
-        float larguraBottom = Vector2.Distance(new Vector2(x3, y3), new Vector2(x2, y2));
-        float alturaLeft = Vector2.Distance(new Vector2(x0, y0), new Vector2(x3, y3));
-        float alturaRight = Vector2.Distance(new Vector2(x1, y1), new Vector2(x2, y2));
-
-        float fovRad = cameraAR.fieldOfView * Mathf.Deg2Rad;
-        float focalLengthPixels = (imgHeight * 0.5f) / Mathf.Tan(fovRad * 0.5f);
-        float constanteZ = focalLengthPixels * tamanhoMarcadorMetros;
-
-        // Aproximação do tamanho aparente local para cada canto (média das arestas conectadas)
-        float tam0 = (larguraTop + alturaLeft) * 0.5f;
-        float tam1 = (larguraTop + alturaRight) * 0.5f;
-        float tam2 = (larguraBottom + alturaRight) * 0.5f;
-        float tam3 = (larguraBottom + alturaLeft) * 0.5f;
-
-        if (tam0 < 5f || tam1 < 5f || tam2 < 5f || tam3 < 5f) return;
-
-        float z0 = Mathf.Clamp(constanteZ / tam0, 0.15f, 4.0f);
-        float z1 = Mathf.Clamp(constanteZ / tam1, 0.15f, 4.0f);
-        float z2 = Mathf.Clamp(constanteZ / tam2, 0.15f, 4.0f);
-        float z3 = Mathf.Clamp(constanteZ / tam3, 0.15f, 4.0f);
-
-        // 3. Posição 3D dos cantos no espaço do mundo usando as profundidades individuais
-        Vector3 p0Mundo = cameraAR.ViewportToWorldPoint(new Vector3(x0 / imgWidth, 1.0f - (y0 / imgHeight), z0));
-        Vector3 p1Mundo = cameraAR.ViewportToWorldPoint(new Vector3(x1 / imgWidth, 1.0f - (y1 / imgHeight), z1));
-        Vector3 p2Mundo = cameraAR.ViewportToWorldPoint(new Vector3(x2 / imgWidth, 1.0f - (y2 / imgHeight), z2));
-        Vector3 p3Mundo = cameraAR.ViewportToWorldPoint(new Vector3(x3 / imgWidth, 1.0f - (y3 / imgHeight), z3));
-
-        // Posição central média em 3D
-        Vector3 posMarcadorMundo = (p0Mundo + p1Mundo + p2Mundo + p3Mundo) * 0.25f;
-
-        // 4. Determina os vetores direcionais 3D do plano do marcador no mundo:
-        // Canto 0 -> 1 = X do marcador (Direita)
-        // Canto 3 -> 0 = Y do marcador na folha (Cima)
-        Vector3 marcadorDireita = (p1Mundo - p0Mundo).normalized; 
-        Vector3 marcadorCimaFolha = (p0Mundo - p3Mundo).normalized; 
-
-        // Vetor Normal perpendicular ao plano do ArUco (saindo da folha / mesa para fora):
-        Vector3 normalPerpendicular = Vector3.Cross(marcadorDireita, marcadorCimaFolha).normalized;
-
-        // Garante que a normal aponte no sentido da câmera (saindo do papel em direção a quem observa)
-        Vector3 direcaoParaCamera = (cameraAR.transform.position - posMarcadorMundo).normalized;
-        if (Vector3.Dot(normalPerpendicular, direcaoParaCamera) < 0f)
+        if (primeiraVez40)
         {
-            normalPerpendicular = -normalPerpendicular;
-        }
-
-        // Para o gráfico:
-        // Queremos que o eixo Y LOCAL do gráfico seja perpendicular ao ArUco (upGrafico)
-        // E o eixo Z LOCAL seja "para cima" na folha (forwardGrafico)
-        Vector3 upGrafico = normalPerpendicular;
-        Vector3 forwardGrafico = marcadorCimaFolha;
-
-        // Orto-normaliza o forward em relação ao up
-        if (Mathf.Abs(Vector3.Dot(upGrafico, forwardGrafico)) > 0.99f)
-        {
-            forwardGrafico = Vector3.Cross(upGrafico, marcadorDireita).normalized;
+            cantosSuavizados40[0] = c0;
+            cantosSuavizados40[1] = c1;
+            cantosSuavizados40[2] = c2;
+            cantosSuavizados40[3] = c3;
+            primeiraVez40 = false;
         }
         else
         {
-            Vector3.OrthoNormalize(ref upGrafico, ref forwardGrafico);
+            float t = Time.deltaTime * 15.0f;
+            cantosSuavizados40[0] = Vector2.Lerp(cantosSuavizados40[0], c0, t);
+            cantosSuavizados40[1] = Vector2.Lerp(cantosSuavizados40[1], c1, t);
+            cantosSuavizados40[2] = Vector2.Lerp(cantosSuavizados40[2], c2, t);
+            cantosSuavizados40[3] = Vector2.Lerp(cantosSuavizados40[3], c3, t);
         }
 
-        // Calcula a rotação 3D que orienta o objeto
+        // 2. Mapeamento correto de pixels do Sensor (OpenCV) para a Tela do Celular (Viewport Unity)
+        // Se a tela for retrato e a câmera for paisagem, precisamos rotacionar as coordenadas 90 graus
+        bool isPortrait = Screen.width < Screen.height;
+        bool isSensorLandscape = imgWidth > imgHeight;
+
+        Vector2 ToViewport(Vector2 pixel)
+        {
+            if (isPortrait && isSensorLandscape)
+            {
+                // Rotaciona 90 graus horário para alinhar com a tela Portrait do celular
+                return new Vector2(1.0f - (pixel.y / imgHeight), 1.0f - (pixel.x / imgWidth));
+            }
+            else
+            {
+                // Apenas inverte Y (OpenCV é Y pra baixo, Unity Viewport é Y pra cima)
+                return new Vector2(pixel.x / imgWidth, 1.0f - (pixel.y / imgHeight));
+            }
+        }
+
+        Vector2 vp0 = ToViewport(cantosSuavizados40[0]);
+        Vector2 vp1 = ToViewport(cantosSuavizados40[1]);
+        Vector2 vp2 = ToViewport(cantosSuavizados40[2]);
+        Vector2 vp3 = ToViewport(cantosSuavizados40[3]);
+
+        // 3. Obter Raios 3D exatos no Espaço da Câmera (Z=1)
+        Vector3 GetCameraRay(Vector2 vp)
+        {
+            Vector3 worldPt = cameraAR.ViewportToWorldPoint(new Vector3(vp.x, vp.y, 1.0f));
+            return cameraAR.transform.InverseTransformPoint(worldPt);
+        }
+
+        Vector3 v0 = GetCameraRay(vp0); // Top-Left
+        Vector3 v1 = GetCameraRay(vp1); // Top-Right
+        Vector3 v2 = GetCameraRay(vp2); // Bottom-Right
+        Vector3 v3 = GetCameraRay(vp3); // Bottom-Left
+
+        // 4. Geometria Projetiva: Pontos de Fuga para achar a Rotação PERFEITA
+        // Retas são produtos vetoriais de pontos
+        Vector3 l_top = Vector3.Cross(v0, v1);
+        Vector3 l_bot = Vector3.Cross(v3, v2);
+        Vector3 l_left = Vector3.Cross(v3, v0);
+        Vector3 l_right = Vector3.Cross(v2, v1);
+
+        // Pontos de fuga
+        Vector3 vp_x = Vector3.Cross(l_top, l_bot);
+        Vector3 vp_y = Vector3.Cross(l_left, l_right);
+
+        // Direção X e Y do marcador no espaço da Câmera
+        Vector3 dirX = (Mathf.Abs(vp_x.z) > 1e-5f) ? (vp_x / vp_x.z).normalized : new Vector3(vp_x.x, vp_x.y, 0).normalized;
+        Vector3 dirY = (Mathf.Abs(vp_y.z) > 1e-5f) ? (vp_y / vp_y.z).normalized : new Vector3(vp_y.x, vp_y.y, 0).normalized;
+
+        // Garante a orientação correta (direita e cima na tela)
+        if (Vector3.Dot(dirX, v1 - v0) < 0) dirX = -dirX;
+        if (Vector3.Dot(dirY, v0 - v3) < 0) dirY = -dirY;
+
+        // Normal do plano do marcador
+        Vector3 dirZ = Vector3.Cross(dirX, dirY).normalized;
+        if (dirZ.z > 0) dirZ = -dirZ; // Garante que aponta pra câmera
+
+        // 5. Calcular a Distância Exata
+        float denom0 = Vector3.Dot(dirZ, v0);
+        float denom1 = Vector3.Dot(dirZ, v1);
+        if (Mathf.Abs(denom0) < 1e-5f) denom0 = 1e-5f * Mathf.Sign(denom0);
+        if (Mathf.Abs(denom1) < 1e-5f) denom1 = 1e-5f * Mathf.Sign(denom1);
+
+        float distRatio = Vector3.Distance(v0 / denom0, v1 / denom1);
+        float dotT = tamanhoMarcadorMetros / distRatio;
+
+        // Raio central
+        Vector3 diag1 = Vector3.Cross(v0, v2);
+        Vector3 diag2 = Vector3.Cross(v1, v3);
+        Vector3 centro2D = Vector3.Cross(diag1, diag2);
+        Vector3 c_ray = (centro2D / centro2D.z).normalized;
+
+        float denomC = Vector3.Dot(dirZ, c_ray);
+        if (Mathf.Abs(denomC) < 1e-5f) denomC = 1e-5f * Mathf.Sign(denomC);
+
+        float z_c = Mathf.Abs(dotT / denomC);
+        Vector3 posCameraSpace = c_ray * z_c;
+
+        // 6. Converter para Espaço do Mundo
+        Vector3 posMarcadorMundo = cameraAR.transform.TransformPoint(posCameraSpace);
+        Vector3 mundoX = cameraAR.transform.TransformDirection(dirX);
+        Vector3 mundoY = cameraAR.transform.TransformDirection(dirY);
+        Vector3 mundoZ = cameraAR.transform.TransformDirection(dirZ);
+
+        // 7. Configurar a Rotação Final
+        Vector3 upGrafico = mundoZ;
+        Vector3 forwardGrafico = mundoY;
+        Vector3.OrthoNormalize(ref upGrafico, ref forwardGrafico);
         rotacaoAlvo40 = Quaternion.LookRotation(forwardGrafico, upGrafico);
 
-        // Aplica o offset 3D no espaço local da orientação do marcador
-        Vector3 offsetMundo = (rotacaoAlvo40 * offsetAncoraMarcador);
+        Vector3 offsetMundo = rotacaoAlvo40 * offsetAncoraMarcador;
         posicaoAlvo40 = posMarcadorMundo + offsetMundo;
     }
 }
