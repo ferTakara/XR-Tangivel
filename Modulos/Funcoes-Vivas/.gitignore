@@ -7,6 +7,17 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Pastas geradas pelo Unity (caches, assets intermediários, debug)
+/ContentPackages/
+/GeneratedAssets/
+/.utmp/
+*_BurstDebugInformation_DoNotShip/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# Cenas de recuperação de crash
+/_Recovery/
+Assets/_Recovery/
+
 # Capturas de memória e gravações (podem ser gigantescas)
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
@@ -19,6 +30,7 @@ ExportedObj/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.tmp
 *.user
@@ -41,6 +53,11 @@ ExportedObj/
 *.aab
 *.unitypackage
 *.app
+
+# Artefatos de compilação C++ (gerados ao compilar a DLL nativa)
+*.exp
+*.obj
+*.lib
 
 # Logs de Crash
 sysinfo.txt

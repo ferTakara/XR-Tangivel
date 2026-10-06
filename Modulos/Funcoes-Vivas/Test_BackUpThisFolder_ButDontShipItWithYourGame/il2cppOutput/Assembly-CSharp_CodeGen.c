@@ -35,7 +35,9 @@ extern void RastreadorAruco_DetectarMultiplosArucos_m490AFE2DD5FBAD0A2FA688D3BB7
 extern void RastreadorAruco_Start_mB48E6D917DA0578F6A4C36814B0ADDD3585E713D (void);
 extern void RastreadorAruco_OnEnable_m1F8299213B58B9E41495311DE8514AA6DFCE02F0 (void);
 extern void RastreadorAruco_OnDisable_mDEE69E2D76BF18D358710D091809D1450C4C53A1 (void);
+extern void RastreadorAruco_Update_m4056D1D322A4C6870B57574C9D9A65CADB6706F3 (void);
 extern void RastreadorAruco_OnCameraFrameReceived_mF1B0433D76306367416CF3CEA4000F0991AD5E69 (void);
+extern void RastreadorAruco_ProcessarPosicionamentoMarcador40_mA702C2DB74143F53AA158E81B0090A4470ACD4EE (void);
 extern void RastreadorAruco__ctor_m213287529AF82FA5A37DAB0B4C9303A3D05FD854 (void);
 extern void ParametroAruco_Inicializar_mCE1A245FA419A1CEDDD2F61A72FC09B5B3517627 (void);
 extern void ParametroAruco_ProcessarRotacao_m600B0E03AF330F42573D8885D5D4B79B1C7D1358 (void);
@@ -57,8 +59,8 @@ extern void RastreadorMaoAR_CriarMaterialUnlit_mAC38D92E372322EACFCE05461E9F048D
 extern void RastreadorMaoAR_OnCameraFrameReceived_m90A8044757720292724F80CE0902A94D471B78D9 (void);
 extern void RastreadorMaoAR_ProcessarInferenciaAsync_m3B39D57AFF2E1313172BE5A876F552B8CC7EC1F9 (void);
 extern void RastreadorMaoAR__ctor_mB6196C2DC43EA662078B9C1B3EDB40371222E871 (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77 (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__67_MoveNext_m6BBAB0A0EE6A7954CECEC05B13A98E96204518F5 (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__67_SetStateMachine_mCB432F22754FF20F9E069D2E710E1B8C1FF850A8 (void);
 extern void VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE (void);
 extern void VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0 (void);
 extern void VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443 (void);
@@ -75,7 +77,7 @@ extern void VisualizadorFuncaoQuadratica_CriarMaterialUnlit_m94127AD71EE4F57DBD4
 extern void VisualizadorFuncaoQuadratica__ctor_mE1A7EEDB1629FDEBAC1E90F2C9EF378F48E1456A (void);
 extern void Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6 (void);
 extern void Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B (void);
-static Il2CppMethodPointer s_methodPointers[68] = 
+static Il2CppMethodPointer s_methodPointers[70] = 
 {
 	BlazeUtils_mul_m6F034BF4A75E4C351473E1CA71B53CE8B6E7D1D8,
 	BlazeUtils_mul_mCAC23367B90FC4927A16563C97A0B0AA0C499901,
@@ -105,7 +107,9 @@ static Il2CppMethodPointer s_methodPointers[68] =
 	RastreadorAruco_Start_mB48E6D917DA0578F6A4C36814B0ADDD3585E713D,
 	RastreadorAruco_OnEnable_m1F8299213B58B9E41495311DE8514AA6DFCE02F0,
 	RastreadorAruco_OnDisable_mDEE69E2D76BF18D358710D091809D1450C4C53A1,
+	RastreadorAruco_Update_m4056D1D322A4C6870B57574C9D9A65CADB6706F3,
 	RastreadorAruco_OnCameraFrameReceived_mF1B0433D76306367416CF3CEA4000F0991AD5E69,
+	RastreadorAruco_ProcessarPosicionamentoMarcador40_mA702C2DB74143F53AA158E81B0090A4470ACD4EE,
 	RastreadorAruco__ctor_m213287529AF82FA5A37DAB0B4C9303A3D05FD854,
 	ParametroAruco_Inicializar_mCE1A245FA419A1CEDDD2F61A72FC09B5B3517627,
 	ParametroAruco_ProcessarRotacao_m600B0E03AF330F42573D8885D5D4B79B1C7D1358,
@@ -127,8 +131,8 @@ static Il2CppMethodPointer s_methodPointers[68] =
 	RastreadorMaoAR_OnCameraFrameReceived_m90A8044757720292724F80CE0902A94D471B78D9,
 	RastreadorMaoAR_ProcessarInferenciaAsync_m3B39D57AFF2E1313172BE5A876F552B8CC7EC1F9,
 	RastreadorMaoAR__ctor_mB6196C2DC43EA662078B9C1B3EDB40371222E871,
-	U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F,
-	U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77,
+	U3CProcessarInferenciaAsyncU3Ed__67_MoveNext_m6BBAB0A0EE6A7954CECEC05B13A98E96204518F5,
+	U3CProcessarInferenciaAsyncU3Ed__67_SetStateMachine_mCB432F22754FF20F9E069D2E710E1B8C1FF850A8,
 	VisualizadorFuncaoQuadratica_Awake_m08AFACF8F5D532DB5B5AA42B5501F729764D00EE,
 	VisualizadorFuncaoQuadratica_Start_m34F4613601DAFD3E74D52EC448EFF972A23382B0,
 	VisualizadorFuncaoQuadratica_LateUpdate_m23012CD84768E2C5FB86FBC284D6774A736B4443,
@@ -146,89 +150,91 @@ static Il2CppMethodPointer s_methodPointers[68] =
 	Readme__ctor_m69C325C4C171DCB0312B646A9034AA91EA8C39C6,
 	Section__ctor_m5F732533E4DFC0167D965E5F5DB332E46055399B,
 };
-extern void U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F_AdjustorThunk (void);
-extern void U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77_AdjustorThunk (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__67_MoveNext_m6BBAB0A0EE6A7954CECEC05B13A98E96204518F5_AdjustorThunk (void);
+extern void U3CProcessarInferenciaAsyncU3Ed__67_SetStateMachine_mCB432F22754FF20F9E069D2E710E1B8C1FF850A8_AdjustorThunk (void);
 static Il2CppTokenAdjustorThunkPair s_adjustorThunks[2] = 
 {
-	{ 0x06000033, U3CProcessarInferenciaAsyncU3Ed__66_MoveNext_mEC5522477ECBF914D2DF09D1772E92E8356A4F8F_AdjustorThunk },
-	{ 0x06000034, U3CProcessarInferenciaAsyncU3Ed__66_SetStateMachine_m6AE7C1CED87862AB9956EC978D5D0D06DDE53D77_AdjustorThunk },
+	{ 0x06000035, U3CProcessarInferenciaAsyncU3Ed__67_MoveNext_m6BBAB0A0EE6A7954CECEC05B13A98E96204518F5_AdjustorThunk },
+	{ 0x06000036, U3CProcessarInferenciaAsyncU3Ed__67_SetStateMachine_mCB432F22754FF20F9E069D2E710E1B8C1FF850A8_AdjustorThunk },
 };
-static const int32_t s_InvokerIndices[68] = 
+static const int32_t s_InvokerIndices[70] = 
 {
-	19616,
-	19614,
-	20974,
+	19617,
+	19615,
 	20975,
-	20975,
-	18272,
-	18244,
-	18943,
-	17743,
-	18264,
-	21386,
-	14070,
-	14070,
-	4915,
-	14070,
-	14070,
-	2753,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14716,
-	14070,
-	14070,
-	14070,
-	10598,
-	14070,
-	11020,
-	6161,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	10663,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	14070,
-	6869,
-	10598,
-	10595,
-	14070,
-	14070,
-	10595,
-	14070,
-	14070,
-	14070,
-	14070,
-	3112,
-	11020,
-	11020,
-	11020,
-	14070,
-	13523,
-	13523,
-	14070,
-	13523,
-	14070,
-	14070,
-	14070,
+	20976,
+	20976,
+	18273,
+	18245,
+	18944,
+	17744,
+	18265,
+	21387,
+	14071,
+	14071,
+	4916,
+	14071,
+	14071,
+	2754,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14717,
+	14071,
+	14071,
+	14071,
+	14071,
+	10599,
+	80,
+	14071,
+	11021,
+	6162,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	10664,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	14071,
+	6870,
+	10599,
+	10596,
+	14071,
+	14071,
+	10596,
+	14071,
+	14071,
+	14071,
+	14071,
+	3113,
+	11021,
+	11021,
+	11021,
+	14071,
+	13524,
+	13524,
+	14071,
+	13524,
+	14071,
+	14071,
+	14071,
 };
 IL2CPP_EXTERN_C const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule;
 const Il2CppCodeGenModule g_AssemblyU2DCSharp_CodeGenModule = 
 {
 	"Assembly-CSharp.dll",
-	68,
+	70,
 	s_methodPointers,
 	2,
 	s_adjustorThunks,
