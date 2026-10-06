@@ -497,6 +497,8 @@ GameObject:
   - component: {fileID: 1024601103}
   - component: {fileID: 1024601104}
   - component: {fileID: 1024601105}
+  - component: {fileID: 1024601106}
+  - component: {fileID: 1024601107}
   m_Layer: 0
   m_Name: GraphManager
   m_TagString: Untagged
@@ -674,6 +676,48 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GeradorDesafioQuadratica
   visualizador: {fileID: 1024601104}
   margemAcerto: 0.2
+--- !u!114 &1024601106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024601101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae23763c9dd06604b9bca2351d83ccb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GestosToqueMobile
+  visualizador: {fileID: 1024601104}
+  geradorDesafio: {fileID: 1024601105}
+  sensibilidadeZoom: 0.003
+  sensibilidadePan: 0.001
+  escalaMinima: 0.4
+  escalaMaxima: 3
+--- !u!114 &1024601107
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024601101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 854235be930d3904888dd8b411329757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RastreadorMaoAR
+  cameraManager: {fileID: 1974343174}
+  cameraBackground: {fileID: 1974343173}
+  cameraAR: {fileID: 1974343176}
+  handDetectorAsset: {fileID: 5022602860645237092, guid: 623adeacd17531c49935f0f8ea66afb4, type: 3}
+  handLandmarkerAsset: {fileID: 5022602860645237092, guid: 4619eb7d27fd5c54496ed10763e3f62e, type: 3}
+  anchorsCSVAsset: {fileID: 0}
+  pontuacaoMinima: 0.5
+  corArticulacoes: {r: 0, g: 1, b: 0.8, a: 1}
+  corOssos: {r: 0.2, g: 0.7, b: 1, a: 0.85}
+  tamanhoArticulacao: 0.012
+  espessuraOsso: 0.005
+  distanciaProfundidadeCamera: 0.5
 --- !u!1 &1973999876
 GameObject:
   m_ObjectHideFlags: 0
