@@ -211,8 +211,11 @@ public class RastreadorAruco : MonoBehaviour
     };
 
     // ============================================================================================
-    // Campos privados
+    // Campos privados e Estado Global
     // ============================================================================================
+
+    [HideInInspector] 
+    public System.Collections.Generic.HashSet<int> marcadoresVisiveisNesteFrame = new System.Collections.Generic.HashSet<int>();
 
     [DllImport("MinhaArucoDLL2")]
     private static extern int DetectarMultiplosArucos(
@@ -352,10 +355,13 @@ public class RastreadorAruco : MonoBehaviour
             );
 
             bool achouA = false, achouB = false, achouC = false, achou40 = false;
+            marcadoresVisiveisNesteFrame.Clear();
 
             for (int i = 0; i < totalDetectados; i++)
             {
                 int id = bufferIds[i];
+                marcadoresVisiveisNesteFrame.Add(id);
+                
                 int offset = i * 8;
                 float x0 = bufferCantos[offset + 0], y0 = bufferCantos[offset + 1];
                 float x1 = bufferCantos[offset + 2], y1 = bufferCantos[offset + 3];

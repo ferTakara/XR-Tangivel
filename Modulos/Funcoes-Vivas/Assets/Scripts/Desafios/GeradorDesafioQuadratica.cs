@@ -94,22 +94,28 @@ public class GeradorDesafioQuadratica : MonoBehaviour
         rend.material.color = cor;
     }
 
-    private float timerDebug = 0f;
+    public void AtivarModo(bool ativo)
+    {
+        this.enabled = ativo;
+        for (int i = 0; i < 3; i++)
+        {
+            if (pontosNaTela[i] != null)
+            {
+                pontosNaTela[i].SetActive(ativo);
+            }
+        }
+        
+        // Se ativou o modo e ainda não tinha gerado as bolinhas, gera agora
+        if (ativo && pontosNaTela[0] == null) 
+        {
+            GerarNovoDesafio();
+        }
+    }
 
     void Update()
     {
+        if (!this.enabled) return;
         VerificarVitoria();
-        
-        // Debug a cada 3 segundos
-        timerDebug += Time.deltaTime;
-        if (timerDebug > 3f)
-        {
-            timerDebug = 0f;
-            if (pontosNaTela[0] != null)
-            {
-                Debug.Log($"[DEBUG PONTOS] Ponto 0 Posicao Local: {pontosNaTela[0].transform.localPosition} | Posicao Mundo: {pontosNaTela[0].transform.position} | Escala: {pontosNaTela[0].transform.lossyScale} | Camera: {Camera.main.transform.position}");
-            }
-        }
     }
 
     private void VerificarVitoria()

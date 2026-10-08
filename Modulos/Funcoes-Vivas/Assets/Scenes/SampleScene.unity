@@ -119,6 +119,72 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &4231207
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4231209}
+  - component: {fileID: 4231208}
+  m_Layer: 0
+  m_Name: test
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &4231208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4231207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a7cc7239a553f489a1681112ca6884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BotaoTangivelAruco
+  rastreador: {fileID: 755971182}
+  idMarcador: 45
+  tempoParaArmar: 0.3
+  tempoMaximoTampado: 1
+  AoApertar:
+    m_PersistentCalls:
+      m_Calls: []
+  AoSoltar:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!4 &4231209
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4231207}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: -0, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &221393086
 GameObject:
   m_ObjectHideFlags: 0
@@ -400,7 +466,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2e7f022276b74f4388437c71b06f714, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RastreadorAruco
+  idAlvoMesa: 40
+  tamanhoMarcadorMetros: 0.08
+  offsetAncoraMarcador: {x: 0, y: 0.05, z: 0}
+  suavizacaoAncora: 10
   cameraManager: {fileID: 1974343174}
+  cameraAR: {fileID: 0}
   visualizadorFuncao: {fileID: 1024601104}
   modo: 0
   parametroA:
@@ -499,6 +570,7 @@ GameObject:
   - component: {fileID: 1024601105}
   - component: {fileID: 1024601106}
   - component: {fileID: 1024601107}
+  - component: {fileID: 1024601108}
   m_Layer: 0
   m_Name: GraphManager
   m_TagString: Untagged
@@ -706,11 +778,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 854235be930d3904888dd8b411329757, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RastreadorMaoAR
+  rastreadorHabilitado: 0
   cameraManager: {fileID: 1974343174}
   cameraBackground: {fileID: 1974343173}
   cameraAR: {fileID: 1974343176}
-  handDetectorAsset: {fileID: 5022602860645237092, guid: 623adeacd17531c49935f0f8ea66afb4, type: 3}
-  handLandmarkerAsset: {fileID: 5022602860645237092, guid: 4619eb7d27fd5c54496ed10763e3f62e, type: 3}
+  handDetectorAsset: {fileID: 0}
+  handLandmarkerAsset: {fileID: 0}
   anchorsCSVAsset: {fileID: 0}
   pontuacaoMinima: 0.5
   corArticulacoes: {r: 0, g: 1, b: 0.8, a: 1}
@@ -718,6 +791,31 @@ MonoBehaviour:
   tamanhoArticulacao: 0.012
   espessuraOsso: 0.005
   distanciaProfundidadeCamera: 0.5
+  visualizadorFuncao: {fileID: 0}
+  distanciaPinchAtivacao: 0.045
+  distanciaPinchSoltura: 0.06
+  sensibilidadeArrastoXY: 1.2
+  sensibilidadeProfundidadeZ: 0.02
+  tamanhoBasePalma: 80
+  corPinchAtivo: {r: 1, g: 0.85, b: 0.1, a: 1}
+  inverterEixoX: 0
+  inverterEixoY: 0
+  trocarXeY: 0
+  resolucaoTexturaIA: 256
+  velocidadeResposta: 40
+  intervaloDeteccaoPalma: 2
+--- !u!114 &1024601108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1024601101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6d9f4b689cca2b4fb4d99bb7800225c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GerenciadorModosXR
 --- !u!1 &1973999876
 GameObject:
   m_ObjectHideFlags: 0
@@ -1039,3 +1137,4 @@ SceneRoots:
   - {fileID: 556115942}
   - {fileID: 755971181}
   - {fileID: 1024601102}
+  - {fileID: 4231209}
