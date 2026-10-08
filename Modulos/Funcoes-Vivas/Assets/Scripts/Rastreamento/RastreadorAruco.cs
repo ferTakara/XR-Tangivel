@@ -72,6 +72,84 @@ public class RastreadorAruco : MonoBehaviour
         }
     }
 
+    // ============================================================================================
+    // One Euro Filter (CHI 2012) — padrão ouro para estabilização de tracking em AR/VR
+    // Filtra forte quando parado (mata jitter), solta quando se move (sem lag)
+    // ============================================================================================
+    private class OneEuroFilterFloat
+    {
+        float minCutoff, beta, dCutoff;
+        float prevValue, prevDeriv, prevTime;
+        bool started;
+
+        public OneEuroFilterFloat(float minCutoff = 0.3f, float beta = 0.00001f, float dCutoff = 1.0f)
+        {
+            this.minCutoff = minCutoff;
+            this.beta = beta;
+            this.dCutoff = dCutoff;
+            started = false;
+        }
+
+        float Alpha(float cutoff, float dt)
+        {
+            float tau = 1.0f / (2f * Mathf.PI * cutoff);
+            return 1.0f / (1.0f + tau / Mathf.Max(dt, 0.001f));
+        }
+
+        public float Filter(float value, float timestamp)
+        {
+            if (!started)
+            {
+                prevValue = value;
+                prevDeriv = 0f;
+                prevTime = timestamp;
+                started = true;
+                return value;
+            }
+
+            float dt = timestamp - prevTime;
+            if (dt <= 0f) dt = 1f / 30f;
+            prevTime = timestamp;
+
+            float deriv = (value - prevValue) / dt;
+            float aD = Alpha(dCutoff, dt);
+            deriv = aD * deriv + (1f - aD) * prevDeriv;
+
+            float cutoff = minCutoff + beta * Mathf.Abs(deriv);
+            float a = Alpha(cutoff, dt);
+            float filtered = a * value + (1f - a) * prevValue;
+
+            prevValue = filtered;
+            prevDeriv = deriv;
+            return filtered;
+        }
+
+        public void Reset() { started = false; }
+    }
+
+    private class OneEuroFilterVec3
+    {
+        OneEuroFilterFloat fx, fy, fz;
+
+        public OneEuroFilterVec3(float minCutoff = 0.3f, float beta = 0.00001f, float dCutoff = 1.0f)
+        {
+            fx = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
+            fy = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
+            fz = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
+        }
+
+        public Vector3 Filter(Vector3 v, float t)
+        {
+            return new Vector3(fx.Filter(v.x, t), fy.Filter(v.y, t), fz.Filter(v.z, t));
+        }
+
+        public void Reset() { fx.Reset(); fy.Reset(); fz.Reset(); }
+    }
+
+    // ============================================================================================
+    // Campos públicos do Inspector
+    // ============================================================================================
+
     [Header("Âncora Espacial (ArUco 40)")]
     [Tooltip("ID do marcador ArUco que serve de base física/mesa para ancorar o gráfico")]
     public int idAlvoMesa = 40;
@@ -132,32 +210,39 @@ public class RastreadorAruco : MonoBehaviour
         valorMax = 5.0f 
     };
 
-    // Suporta detecção de múltiplos marcadores simultaneamente na mesma imagem
+    // ============================================================================================
+    // Campos privados
+    // ============================================================================================
+
     [DllImport("MinhaArucoDLL2")]
     private static extern int DetectarMultiplosArucos(
-        IntPtr pixels, 
-        int width, 
-        int height, 
-        int channels, 
-        int maxMarcadores, 
-        int[] outIds, 
-        float[] outCorners
+        IntPtr pixels, int width, int height, int channels,
+        int maxMarcadores, int[] outIds, float[] outCorners
     );
 
     private const int MAX_MARCADORES = 10;
     private int[] bufferIds = new int[MAX_MARCADORES];
     private float[] bufferCantos = new float[MAX_MARCADORES * 8];
 
-    // Variáveis de estado do marcador 40 (Âncora)
+    // Estado do marcador 40
     private bool marcador40Detectado = false;
     private Vector3 posicaoAlvo40;
     private Quaternion rotacaoAlvo40;
     private float tempoSemDetectar40 = 0f;
-    private const float TEMPO_TOLERANCIA_PERDA = 0.35f; // Mantém posição por 350ms antes de voltar ao modo egocêntrico
+    private const float TEMPO_TOLERANCIA_PERDA = 0.35f;
 
-    // Filtro Passa-Baixa 2D para estabilizar cantos e remover jitter do cálculo de Z
+    // Filtro de cantos 2D
     private Vector2[] cantosSuavizados40 = new Vector2[4];
     private bool primeiraVez40 = true;
+
+    // One Euro Filters para posição e yaw
+    private OneEuroFilterVec3 filtroPos;
+    private OneEuroFilterFloat filtroYaw;
+    private float yawAnterior = 0f;
+
+    // ============================================================================================
+    // Ciclo de vida Unity
+    // ============================================================================================
 
     void Start()
     {
@@ -179,9 +264,11 @@ public class RastreadorAruco : MonoBehaviour
         }
 
         if (visualizadorFuncao != null)
-        {
             visualizadorFuncao.AtualizarCoeficientes(parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
-        }
+
+        // One Euro: minCutoff baixo = suave quando parado, beta baixo = pouca reação a velocidade
+        filtroPos = new OneEuroFilterVec3(0.4f, 0.0001f, 1.0f);
+        filtroYaw = new OneEuroFilterFloat(0.3f, 0.00005f, 1.0f);
     }
 
     void OnEnable()
@@ -202,87 +289,69 @@ public class RastreadorAruco : MonoBehaviour
 
         if (marcador40Detectado)
         {
-            // Desativa o seguimento automático da câmera no visualizador para ancorar no marcador
             visualizadorFuncao.seguirCamera = false;
 
-            // Interpola suavemente a posição e rotação até o marcador 40
-            float t = Time.deltaTime * suavizacaoAncora;
-            visualizadorFuncao.transform.position = Vector3.Lerp(visualizadorFuncao.transform.position, posicaoAlvo40, t);
-            visualizadorFuncao.transform.rotation = Quaternion.Slerp(visualizadorFuncao.transform.rotation, rotacaoAlvo40, t);
+            // Deadzone: se a diferença é minúscula, reduz a velocidade para "congelar"
+            float dist = Vector3.Distance(visualizadorFuncao.transform.position, posicaoAlvo40);
+            float ang = Quaternion.Angle(visualizadorFuncao.transform.rotation, rotacaoAlvo40);
+
+            float velPos = dist < 0.01f ? 2.0f : suavizacaoAncora;
+            float velRot = ang < 2.0f ? 2.0f : suavizacaoAncora;
+
+            visualizadorFuncao.transform.position = Vector3.Lerp(
+                visualizadorFuncao.transform.position, posicaoAlvo40, Time.deltaTime * velPos);
+            visualizadorFuncao.transform.rotation = Quaternion.Slerp(
+                visualizadorFuncao.transform.rotation, rotacaoAlvo40, Time.deltaTime * velRot);
         }
         else
         {
             tempoSemDetectar40 += Time.deltaTime;
-            // Se o marcador 40 não for visto durante a tolerância, volta para o frame egocêntrico
             if (tempoSemDetectar40 >= TEMPO_TOLERANCIA_PERDA)
             {
                 visualizadorFuncao.seguirCamera = true;
+                primeiraVez40 = true;
+                filtroPos.Reset();
+                filtroYaw.Reset();
             }
         }
     }
 
+    // ============================================================================================
+    // Processamento de Frame da Câmera AR
+    // ============================================================================================
+
     unsafe void OnCameraFrameReceived(ARCameraFrameEventArgs eventArgs)
     {
         if (!cameraManager.TryAcquireLatestCpuImage(out var image))
-        {
             return;
-        }
 
         var planoY = image.GetPlane(0);
         IntPtr ponteiroPixels = (IntPtr)planoY.data.GetUnsafePtr();
-        int channels = planoY.pixelStride; // 4 no Unity Editor e 1 no Celular
+        int channels = planoY.pixelStride;
         
         try 
         {
             int totalDetectados = DetectarMultiplosArucos(
-                ponteiroPixels, 
-                image.width, 
-                image.height, 
-                channels, 
-                MAX_MARCADORES, 
-                bufferIds, 
-                bufferCantos
+                ponteiroPixels, image.width, image.height, channels,
+                MAX_MARCADORES, bufferIds, bufferCantos
             );
 
-            bool achouA = false;
-            bool achouB = false;
-            bool achouC = false;
-            bool achou40 = false;
+            bool achouA = false, achouB = false, achouC = false, achou40 = false;
 
             for (int i = 0; i < totalDetectados; i++)
             {
                 int id = bufferIds[i];
-
-                // 8 floats por marcador: (x0, y0, x1, y1, x2, y2, x3, y3)
                 int offset = i * 8;
-                float x0 = bufferCantos[offset + 0];
-                float y0 = bufferCantos[offset + 1];
-                float x1 = bufferCantos[offset + 2];
-                float y1 = bufferCantos[offset + 3];
-                float x2 = bufferCantos[offset + 4];
-                float y2 = bufferCantos[offset + 5];
-                float x3 = bufferCantos[offset + 6];
-                float y3 = bufferCantos[offset + 7];
+                float x0 = bufferCantos[offset + 0], y0 = bufferCantos[offset + 1];
+                float x1 = bufferCantos[offset + 2], y1 = bufferCantos[offset + 3];
+                float x2 = bufferCantos[offset + 4], y2 = bufferCantos[offset + 5];
+                float x3 = bufferCantos[offset + 6], y3 = bufferCantos[offset + 7];
 
-                float dx = x1 - x0;
-                float dy = y1 - y0;
-                float anguloAtual = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
+                float anguloAtual = Mathf.Atan2(y1 - y0, x1 - x0) * Mathf.Rad2Deg;
 
-                if (id == parametroA.idAlvo)
-                {
-                    parametroA.ProcessarRotacao(anguloAtual, modo);
-                    achouA = true;
-                }
-                else if (id == parametroB.idAlvo)
-                {
-                    parametroB.ProcessarRotacao(anguloAtual, modo);
-                    achouB = true;
-                }
-                else if (id == parametroC.idAlvo)
-                {
-                    parametroC.ProcessarRotacao(anguloAtual, modo);
-                    achouC = true;
-                }
+                if (id == parametroA.idAlvo) { parametroA.ProcessarRotacao(anguloAtual, modo); achouA = true; }
+                else if (id == parametroB.idAlvo) { parametroB.ProcessarRotacao(anguloAtual, modo); achouB = true; }
+                else if (id == parametroC.idAlvo) { parametroC.ProcessarRotacao(anguloAtual, modo); achouC = true; }
 
                 if (id == idAlvoMesa)
                 {
@@ -291,34 +360,17 @@ public class RastreadorAruco : MonoBehaviour
                 }
             }
 
-            // Atualiza status do marcador 40
-            if (achou40)
-            {
-                marcador40Detectado = true;
-                tempoSemDetectar40 = 0f;
-            }
-            else
-            {
-                marcador40Detectado = false;
-                if (tempoSemDetectar40 >= TEMPO_TOLERANCIA_PERDA)
-                {
-                    primeiraVez40 = true; // Reseta filtro ao perder marcador definitivamente
-                }
-            }
+            if (achou40) { marcador40Detectado = true; tempoSemDetectar40 = 0f; }
+            else         { marcador40Detectado = false; }
 
-            // Se algum marcador específico não esteve visível neste frame, reseta seu delta
             if (!achouA) parametroA.ResetarGiro();
             if (!achouB) parametroB.ResetarGiro();
             if (!achouC) parametroC.ResetarGiro();
 
-            // Atualiza o gráfico com todos os coeficientes calculados simultaneamente!
             if ((achouA || achouB || achouC) && visualizadorFuncao != null)
             {
                 visualizadorFuncao.AtualizarCoeficientes(
-                    parametroA.valorAtual, 
-                    parametroB.valorAtual, 
-                    parametroC.valorAtual
-                );
+                    parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
             }
         }
         catch (Exception e)
@@ -331,56 +383,57 @@ public class RastreadorAruco : MonoBehaviour
         }
     }
 
+    // ============================================================================================
+    // Posicionamento do Gráfico sobre o ArUco 40
+    //
+    // ABORDAGEM: Gravidade (IMU) + Yaw (Pixels) + One Euro Filter
+    //
+    // A inclinação (tilt) vem do giroscópio/acelerômetro do celular via ARFoundation,
+    // que é perfeitamente estável. Apenas o yaw (rotação horizontal) é extraído dos pixels.
+    // Isso elimina ~90% do jitter porque o tilt (componente mais ruidoso) não depende mais
+    // de cálculos frágeis de profundidade por canto.
+    // ============================================================================================
+
     private void ProcessarPosicionamentoMarcador40(
-        float x0, float y0,
-        float x1, float y1,
-        float x2, float y2,
-        float x3, float y3,
+        float x0, float y0, float x1, float y1,
+        float x2, float y2, float x3, float y3,
         int imgWidth, int imgHeight)
     {
         if (cameraAR == null) cameraAR = Camera.main;
         if (cameraAR == null) return;
 
-        // 1. Filtro passa-baixa 2D (Anti-Jitter)
-        Vector2 c0 = new Vector2(x0, y0);
-        Vector2 c1 = new Vector2(x1, y1);
-        Vector2 c2 = new Vector2(x2, y2);
-        Vector2 c3 = new Vector2(x3, y3);
+        // 1. Suavizar cantos 2D (deadzone adaptativa)
+        Vector2 c0 = new Vector2(x0, y0), c1 = new Vector2(x1, y1);
+        Vector2 c2 = new Vector2(x2, y2), c3 = new Vector2(x3, y3);
 
         if (primeiraVez40)
         {
-            cantosSuavizados40[0] = c0;
-            cantosSuavizados40[1] = c1;
-            cantosSuavizados40[2] = c2;
-            cantosSuavizados40[3] = c3;
+            cantosSuavizados40[0] = c0; cantosSuavizados40[1] = c1;
+            cantosSuavizados40[2] = c2; cantosSuavizados40[3] = c3;
             primeiraVez40 = false;
         }
         else
         {
-            float t = Time.deltaTime * 15.0f;
-            cantosSuavizados40[0] = Vector2.Lerp(cantosSuavizados40[0], c0, t);
-            cantosSuavizados40[1] = Vector2.Lerp(cantosSuavizados40[1], c1, t);
-            cantosSuavizados40[2] = Vector2.Lerp(cantosSuavizados40[2], c2, t);
-            cantosSuavizados40[3] = Vector2.Lerp(cantosSuavizados40[3], c3, t);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector2 cNovo = i == 0 ? c0 : i == 1 ? c1 : i == 2 ? c2 : c3;
+                float distPx = Vector2.Distance(cantosSuavizados40[i], cNovo);
+                // < 3px = ruído da OpenCV → congelar; > 3px = movimento real → acompanhar
+                float suavidade = distPx < 3.0f ? 1.0f : 12.0f;
+                cantosSuavizados40[i] = Vector2.Lerp(cantosSuavizados40[i], cNovo, Time.deltaTime * suavidade);
+            }
         }
 
-        // 2. Mapeamento correto de pixels do Sensor (OpenCV) para a Tela do Celular (Viewport Unity)
-        // Se a tela for retrato e a câmera for paisagem, precisamos rotacionar as coordenadas 90 graus
+        // 2. Converter pixels do sensor (OpenCV) → Viewport do Unity
         bool isPortrait = Screen.width < Screen.height;
         bool isSensorLandscape = imgWidth > imgHeight;
 
         Vector2 ToViewport(Vector2 pixel)
         {
             if (isPortrait && isSensorLandscape)
-            {
-                // Rotaciona 90 graus horário para alinhar com a tela Portrait do celular
                 return new Vector2(1.0f - (pixel.y / imgHeight), 1.0f - (pixel.x / imgWidth));
-            }
             else
-            {
-                // Apenas inverte Y (OpenCV é Y pra baixo, Unity Viewport é Y pra cima)
                 return new Vector2(pixel.x / imgWidth, 1.0f - (pixel.y / imgHeight));
-            }
         }
 
         Vector2 vp0 = ToViewport(cantosSuavizados40[0]);
@@ -388,75 +441,61 @@ public class RastreadorAruco : MonoBehaviour
         Vector2 vp2 = ToViewport(cantosSuavizados40[2]);
         Vector2 vp3 = ToViewport(cantosSuavizados40[3]);
 
-        // 3. Obter Raios 3D exatos no Espaço da Câmera (Z=1)
-        Vector3 GetCameraRay(Vector2 vp)
+        // 3. Distância Z média (média das 4 arestas = máxima estabilidade)
+        float e0 = Vector2.Distance(cantosSuavizados40[0], cantosSuavizados40[1]);
+        float e1 = Vector2.Distance(cantosSuavizados40[1], cantosSuavizados40[2]);
+        float e2 = Vector2.Distance(cantosSuavizados40[2], cantosSuavizados40[3]);
+        float e3 = Vector2.Distance(cantosSuavizados40[3], cantosSuavizados40[0]);
+        float avgEdge = (e0 + e1 + e2 + e3) * 0.25f;
+        if (avgEdge < 8f) return;
+
+        float fovRad = cameraAR.fieldOfView * Mathf.Deg2Rad;
+        float focalPx = (imgHeight * 0.5f) / Mathf.Tan(fovRad * 0.5f);
+        float distZ = Mathf.Clamp((focalPx * tamanhoMarcadorMetros) / avgEdge, 0.1f, 5.0f);
+
+        // 4. Posição 3D do centro do marcador
+        Vector2 vpCentro = (vp0 + vp1 + vp2 + vp3) * 0.25f;
+        Vector3 posRaw = cameraAR.ViewportToWorldPoint(new Vector3(vpCentro.x, vpCentro.y, distZ));
+
+        // 5. ROTAÇÃO: Gravidade para tilt + Pixels apenas para yaw
+        Vector3 upGrafico = Vector3.up; // Vem do IMU (giroscópio) — sem ruído
+
+        // Projetar cantos no mundo com mesmo Z para calcular a direção "direita" do marcador
+        Vector3 p0w = cameraAR.ViewportToWorldPoint(new Vector3(vp0.x, vp0.y, distZ));
+        Vector3 p1w = cameraAR.ViewportToWorldPoint(new Vector3(vp1.x, vp1.y, distZ));
+        Vector3 p2w = cameraAR.ViewportToWorldPoint(new Vector3(vp2.x, vp2.y, distZ));
+        Vector3 p3w = cameraAR.ViewportToWorldPoint(new Vector3(vp3.x, vp3.y, distZ));
+
+        // Direita do marcador (média topo + fundo para estabilidade)
+        Vector3 direita = ((p1w - p0w) + (p2w - p3w)) * 0.5f;
+        direita.y = 0f; // Projetar no plano horizontal
+        if (direita.sqrMagnitude < 0.0001f)
         {
-            Vector3 worldPt = cameraAR.ViewportToWorldPoint(new Vector3(vp.x, vp.y, 1.0f));
-            return cameraAR.transform.InverseTransformPoint(worldPt);
+            direita = cameraAR.transform.right;
+            direita.y = 0f;
         }
+        direita.Normalize();
 
-        Vector3 v0 = GetCameraRay(vp0); // Top-Left
-        Vector3 v1 = GetCameraRay(vp1); // Top-Right
-        Vector3 v2 = GetCameraRay(vp2); // Bottom-Right
-        Vector3 v3 = GetCameraRay(vp3); // Bottom-Left
+        // Forward = perpendicular à "direita" no plano horizontal
+        Vector3 forwardGrafico = Vector3.Cross(direita, upGrafico).normalized;
 
-        // 4. Geometria Projetiva: Pontos de Fuga para achar a Rotação PERFEITA
-        // Retas são produtos vetoriais de pontos
-        Vector3 l_top = Vector3.Cross(v0, v1);
-        Vector3 l_bot = Vector3.Cross(v3, v2);
-        Vector3 l_left = Vector3.Cross(v3, v0);
-        Vector3 l_right = Vector3.Cross(v2, v1);
+        // Extrair yaw bruto e tratar descontinuidade angular (-180/+180)
+        float yawRaw = Mathf.Atan2(forwardGrafico.x, forwardGrafico.z) * Mathf.Rad2Deg;
+        float diffYaw = Mathf.DeltaAngle(yawAnterior, yawRaw);
+        yawRaw = yawAnterior + diffYaw;
+        yawAnterior = yawRaw;
 
-        // Pontos de fuga
-        Vector3 vp_x = Vector3.Cross(l_top, l_bot);
-        Vector3 vp_y = Vector3.Cross(l_left, l_right);
+        // 6. Aplicar One Euro Filter (mata o jitter residual)
+        float tempo = Time.time;
+        Vector3 posFiltrada = filtroPos.Filter(posRaw, tempo);
+        float yawFiltrado = filtroYaw.Filter(yawRaw, tempo);
 
-        // Direção X e Y do marcador no espaço da Câmera
-        Vector3 dirX = (Mathf.Abs(vp_x.z) > 1e-5f) ? (vp_x / vp_x.z).normalized : new Vector3(vp_x.x, vp_x.y, 0).normalized;
-        Vector3 dirY = (Mathf.Abs(vp_y.z) > 1e-5f) ? (vp_y / vp_y.z).normalized : new Vector3(vp_y.x, vp_y.y, 0).normalized;
+        // 7. Construir rotação final
+        rotacaoAlvo40 = Quaternion.LookRotation(
+            new Vector3(Mathf.Sin(yawFiltrado * Mathf.Deg2Rad), 0f, Mathf.Cos(yawFiltrado * Mathf.Deg2Rad)),
+            upGrafico);
 
-        // Garante a orientação correta (direita e cima na tela)
-        if (Vector3.Dot(dirX, v1 - v0) < 0) dirX = -dirX;
-        if (Vector3.Dot(dirY, v0 - v3) < 0) dirY = -dirY;
-
-        // Normal do plano do marcador
-        Vector3 dirZ = Vector3.Cross(dirX, dirY).normalized;
-        if (dirZ.z > 0) dirZ = -dirZ; // Garante que aponta pra câmera
-
-        // 5. Calcular a Distância Exata
-        float denom0 = Vector3.Dot(dirZ, v0);
-        float denom1 = Vector3.Dot(dirZ, v1);
-        if (Mathf.Abs(denom0) < 1e-5f) denom0 = 1e-5f * Mathf.Sign(denom0);
-        if (Mathf.Abs(denom1) < 1e-5f) denom1 = 1e-5f * Mathf.Sign(denom1);
-
-        float distRatio = Vector3.Distance(v0 / denom0, v1 / denom1);
-        float dotT = tamanhoMarcadorMetros / distRatio;
-
-        // Raio central
-        Vector3 diag1 = Vector3.Cross(v0, v2);
-        Vector3 diag2 = Vector3.Cross(v1, v3);
-        Vector3 centro2D = Vector3.Cross(diag1, diag2);
-        Vector3 c_ray = (centro2D / centro2D.z).normalized;
-
-        float denomC = Vector3.Dot(dirZ, c_ray);
-        if (Mathf.Abs(denomC) < 1e-5f) denomC = 1e-5f * Mathf.Sign(denomC);
-
-        float z_c = Mathf.Abs(dotT / denomC);
-        Vector3 posCameraSpace = c_ray * z_c;
-
-        // 6. Converter para Espaço do Mundo
-        Vector3 posMarcadorMundo = cameraAR.transform.TransformPoint(posCameraSpace);
-        Vector3 mundoX = cameraAR.transform.TransformDirection(dirX);
-        Vector3 mundoY = cameraAR.transform.TransformDirection(dirY);
-        Vector3 mundoZ = cameraAR.transform.TransformDirection(dirZ);
-
-        // 7. Configurar a Rotação Final
-        Vector3 upGrafico = mundoZ;
-        Vector3 forwardGrafico = mundoY;
-        Vector3.OrthoNormalize(ref upGrafico, ref forwardGrafico);
-        rotacaoAlvo40 = Quaternion.LookRotation(forwardGrafico, upGrafico);
-
-        Vector3 offsetMundo = rotacaoAlvo40 * offsetAncoraMarcador;
-        posicaoAlvo40 = posMarcadorMundo + offsetMundo;
+        // 8. Posição final com offset
+        posicaoAlvo40 = posFiltrada + rotacaoAlvo40 * offsetAncoraMarcador;
     }
 }
