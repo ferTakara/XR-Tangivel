@@ -224,12 +224,14 @@ public class RastreadorAruco : MonoBehaviour
     private int[] bufferIds = new int[MAX_MARCADORES];
     private float[] bufferCantos = new float[MAX_MARCADORES * 8];
 
-    // Estado do marcador 40
-    private bool marcador40Detectado = false;
+    // Estado da Âncora (Marcador 40)
+    private bool isAncoradoNoMundo = false;
     private Vector3 posicaoAlvo40;
     private Quaternion rotacaoAlvo40;
-    private float tempoSemDetectar40 = 0f;
-    private const float TEMPO_TOLERANCIA_PERDA = 0.35f;
+    
+    // Controle de duplo clique (Double Tap)
+    private float lastTapTime = 0f;
+    private const float DOUBLE_TAP_THRESHOLD = 0.3f;
 
     // Filtro de cantos 2D
     private Vector2[] cantosSuavizados40 = new Vector2[4];
@@ -287,7 +289,31 @@ public class RastreadorAruco : MonoBehaviour
     {
         if (visualizadorFuncao == null) return;
 
-        if (marcador40Detectado)
+        // Checa Duplo Clique na tela para desancorar o gráfico da mesa
+        bool doubleTap = false;
+        if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Began)
+        {
+            if (Time.time - lastTapTime < DOUBLE_TAP_THRESHOLD) doubleTap = true;
+            lastTapTime = Time.time;
+        }
+        else if (Input.GetMouseButtonDown(0)) // Fallback para testar no Editor
+        {
+            if (Time.time - lastTapTime < DOUBLE_TAP_THRESHOLD) doubleTap = true;
+            lastTapTime = Time.time;
+        }
+
+        // Se deu dois toques e estava ancorado, solta o gráfico para voltar a seguir a câmera
+        if (doubleTap && isAncoradoNoMundo)
+        {
+            isAncoradoNoMundo = false;
+            visualizadorFuncao.seguirCamera = true;
+            primeiraVez40 = true;
+            filtroPos.Reset();
+            filtroYaw.Reset();
+        }
+
+        // Se está ancorado, o gráfico fica preso nas coordenadas 3D mesmo sem o ArUco na tela
+        if (isAncoradoNoMundo)
         {
             visualizadorFuncao.seguirCamera = false;
 
@@ -302,17 +328,6 @@ public class RastreadorAruco : MonoBehaviour
                 visualizadorFuncao.transform.position, posicaoAlvo40, Time.deltaTime * velPos);
             visualizadorFuncao.transform.rotation = Quaternion.Slerp(
                 visualizadorFuncao.transform.rotation, rotacaoAlvo40, Time.deltaTime * velRot);
-        }
-        else
-        {
-            tempoSemDetectar40 += Time.deltaTime;
-            if (tempoSemDetectar40 >= TEMPO_TOLERANCIA_PERDA)
-            {
-                visualizadorFuncao.seguirCamera = true;
-                primeiraVez40 = true;
-                filtroPos.Reset();
-                filtroYaw.Reset();
-            }
         }
     }
 
@@ -360,8 +375,10 @@ public class RastreadorAruco : MonoBehaviour
                 }
             }
 
-            if (achou40) { marcador40Detectado = true; tempoSemDetectar40 = 0f; }
-            else         { marcador40Detectado = false; }
+            if (achou40) 
+            { 
+                isAncoradoNoMundo = true; 
+            }
 
             if (!achouA) parametroA.ResetarGiro();
             if (!achouB) parametroB.ResetarGiro();
