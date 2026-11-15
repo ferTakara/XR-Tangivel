@@ -90,11 +90,8 @@ public class GestosToqueMobile : MonoBehaviour
             {
                 if (ultimoToque2DedosTempo >= 0f && Time.time - ultimoToque2DedosTempo < INTERVALO_TOQUE_DUPLO)
                 {
-                    if (geradorDesafio != null)
-                    {
-                        Debug.Log("<color=cyan>[GESTO] Toque duplo com 2 dedos: Gerando novo desafio!</color>");
-                        geradorDesafio.GerarNovoDesafio();
-                    }
+                    Debug.Log("<color=cyan>[GESTO] Toque duplo com 2 dedos: novo desafio</color>");
+                    ControladorSessao.Obter().PedirNovoDesafio(); // ignorado no modo livre
                     ultimoToque2DedosTempo = -1f;
                     return;
                 }
@@ -199,9 +196,9 @@ public class GestosToqueMobile : MonoBehaviour
         }
 
         // Pressionar tecla 'N' no editor = Novo desafio
-        if (Input.GetKeyDown(KeyCode.N) && geradorDesafio != null)
+        if (Input.GetKeyDown(KeyCode.N))
         {
-            geradorDesafio.GerarNovoDesafio();
+            ControladorSessao.Obter().PedirNovoDesafio(); // ignorado no modo livre
         }
     }
 

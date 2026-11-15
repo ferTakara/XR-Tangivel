@@ -119,72 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &4231207
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4231209}
-  - component: {fileID: 4231208}
-  m_Layer: 0
-  m_Name: test
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &4231208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4231207}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a7cc7239a553f489a1681112ca6884, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BotaoTangivelAruco
-  rastreador: {fileID: 755971182}
-  idMarcador: 45
-  tempoParaArmar: 0.3
-  tempoMaximoTampado: 1
-  AoApertar:
-    m_PersistentCalls:
-      m_Calls: []
-  AoSoltar:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!4 &4231209
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4231207}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0, z: 0.5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &221393086
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,9 +403,13 @@ MonoBehaviour:
   idAlvoMesa: 40
   tamanhoMarcadorMetros: 0.08
   offsetAncoraMarcador: {x: 0, y: 0.05, z: 0}
-  suavizacaoAncora: 10
+  minCutoffPosicao: 0.4
+  betaPosicao: 0.0001
+  minCutoffYaw: 0.3
+  betaYaw: 0.00005
   cameraManager: {fileID: 1974343174}
   cameraAR: {fileID: 0}
+  fonteCameraComponente: {fileID: 0}
   visualizadorFuncao: {fileID: 1024601104}
   modo: 0
   parametroA:
@@ -731,6 +669,7 @@ MonoBehaviour:
   distanciaCamera: 2
   offsetCamera: {x: 0, y: -0.1, z: 0}
   suavizacaoSeguir: 5
+  suavizacaoAncora: 10
   linhaParabola: {fileID: 1024601103}
   linhaEixos: {fileID: 0}
   textoEquacao: {fileID: 0}
@@ -816,6 +755,54 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6d9f4b689cca2b4fb4d99bb7800225c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GerenciadorModosXR
+--- !u!1 &1473165510
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1473165512}
+  - component: {fileID: 1473165511}
+  m_Layer: 0
+  m_Name: ControladorSessao
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1473165511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1473165510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5390bb5637ff8b649b80da61f740f91a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::XRTangivel.Core.ControladorSessao
+  condicao: C1
+  gravarCsv: 1
+  gerador: {fileID: 0}
+  visualizador: {fileID: 0}
+--- !u!4 &1473165512
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1473165510}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -14.79887, y: -0, z: 7.9907}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1973999876
 GameObject:
   m_ObjectHideFlags: 0
@@ -1137,4 +1124,4 @@ SceneRoots:
   - {fileID: 556115942}
   - {fileID: 755971181}
   - {fileID: 1024601102}
-  - {fileID: 4231209}
+  - {fileID: 1473165512}

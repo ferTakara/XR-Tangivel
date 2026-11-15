@@ -1,76 +1,29 @@
-using System;
 using UnityEngine;
 using XRTangivel.Core;
 
-public class GerenciadorModosXR : MonoBehaviour, IInteracaoAcaoProvider
+/// <summary>
+/// Interface de tela do celular (OnGUI): só mostra o estado e repassa os cliques ao ControladorSessao,
+/// que é o dono do modo e dos desafios.
+/// </summary>
+public class GerenciadorModosXR : MonoBehaviour
 {
-    private GeradorDesafioQuadratica gerador;
-    private bool modoDesafio = false;
-
-    // Guardamos as assinaturas para removê-las no OnDestroy
-    private readonly System.Collections.Generic.List<IInteracaoAcaoProvider> provedoresAssinados =
-        new System.Collections.Generic.List<IInteracaoAcaoProvider>();
-
-    public event Action OnAlternarModo;
-    public event Action OnNovoDesafio;
-    public event Action OnResetarPosicao;
+    private ControladorSessao sessao;
+    private ControladorSessao Sessao => sessao != null ? sessao : (sessao = ControladorSessao.Obter());
 
     void Start()
     {
-        // Encontra o gerador de desafios na cena
-        gerador = FindAnyObjectByType<GeradorDesafioQuadratica>();
-        
-        // Conecta automaticamente com provedores de ação tangíveis (ex: botão ArUco)
-        var acoesTangiveis = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
-        foreach (var c in acoesTangiveis)
-        {
-            if (c is IInteracaoAcaoProvider provider && c != this)
-            {
-                provider.OnNovoDesafio += AoPedirNovoDesafio;
-                provedoresAssinados.Add(provider);
-            }
-        }
-
-        // Inicia no modo sandbox (sem bolinhas)
-        SetModo(false);
+        sessao = ControladorSessao.Obter();
     }
 
-    void OnDestroy()
-    {
-        foreach (var provider in provedoresAssinados)
-        {
-            if (provider != null) provider.OnNovoDesafio -= AoPedirNovoDesafio;
-        }
-        provedoresAssinados.Clear();
-    }
+    public void AlternarModo() => Sessao.AlternarModo();
+    public void SetModo(bool desafio) => Sessao.SetModo(desafio);
 
-    // Único lugar que gera desafio a partir de eventos dos provedores (botão ArUco, painel do Quest...)
-    private void AoPedirNovoDesafio()
-    {
-        if (modoDesafio && gerador != null) gerador.GerarNovoDesafio();
-    }
-
-    public void AlternarModo()
-    {
-        SetModo(!modoDesafio);
-    }
-
-    public void SetModo(bool desafio)
-    {
-        modoDesafio = desafio;
-        if (gerador != null)
-        {
-            gerador.AtivarModo(desafio);
-        }
-        OnAlternarModo?.Invoke();
-    }
-
-    // Usamos OnGUI desenhado proceduralmente para ser super leve 
-    // e não precisar configurar Canvas manualmente no Editor do Unity
+    // OnGUI desenhado por código para ser leve e não precisar configurar Canvas no Editor
     void OnGUI()
     {
-        // Escalar GUI para ficar legível em telas mobile (celular em pé ou deitado)
-        // Baseamos a escala numa tela padrão de 1080p
+        bool modoDesafio = Sessao.ModoDesafio;
+
+        // Escala a GUI para ficar legível no celular (em pé ou deitado), com base numa tela de 1080p
         float escala = Screen.width > Screen.height ? Screen.height / 1080f : Screen.width / 1080f;
         GUI.matrix = Matrix4x4.Scale(new Vector3(escala, escala, 1f));
 
@@ -98,18 +51,17 @@ public class GerenciadorModosXR : MonoBehaviour, IInteracaoAcaoProvider
         {
             SetModo(true);
         }
-        
-        GUI.color = Color.white; // Reseta cor
 
-        // --- Botão Novo Desafio (Só aparece se estiver no Modo Desafio) ---
-        if (modoDesafio && gerador != null)
+        GUI.color = Color.white;
+
+        // --- Botão Novo Desafio (só no modo desafio) ---
+        if (modoDesafio && Sessao.TemGerador)
         {
-            GUI.color = new Color(1f, 0.8f, 0f); // Amarelo
+            GUI.color = new Color(1f, 0.8f, 0f); // amarelo
             float xNovoDesafio = telaEscaladaWidth - margem * 2 - larguraBotao;
             if (GUI.Button(new Rect(xNovoDesafio, margem * 2, larguraBotao, alturaBotao), "Novo Desafio"))
             {
-                gerador.GerarNovoDesafio();
-                OnNovoDesafio?.Invoke();
+                Sessao.PedirNovoDesafio();
             }
             GUI.color = Color.white;
         }

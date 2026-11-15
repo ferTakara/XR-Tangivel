@@ -1,152 +1,19 @@
 using System;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
-using Unity.Collections.LowLevel.Unsafe;
+using XRTangivel.Adapters.Mobile;
 using XRTangivel.Core;
+using XRTangivel.Rastreamento;
 
+/// <summary>
+/// Rastreamento ArUco: dials A/B/C (marcadores 42-44) e âncora na mesa (marcador 40).
+/// Recebe os frames de um IFonteCameraProvider (ArCoreFonteCamera no celular) e usa o
+/// ArucoDetectorService para chamar a DLL. O cálculo da pose do marcador 40 é o mesmo da
+/// versão original (tamanho do marcador + FOV da câmera + suavização dos cantos + One Euro).
+/// </summary>
 public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoProvider
 {
-    public enum ModoRotacao
-    {
-        PotenciometroContinuo, // Acumula giros como um botão físico giratório (permite várias voltas)
-        AnguloAbsoluto         // O ângulo direto do marcador define o valor (-180° a +180°)
-    }
-
-    [System.Serializable]
-    public class ParametroAruco
-    {
-        public string nome = "Parâmetro";
-        public int idAlvo = 42;
-        public float valorAtual = 0f;
-        public float sensibilidade = 0.01f;
-        public bool limitarValor = true;
-        public float valorMin = -5.0f;
-        public float valorMax = 5.0f;
-
-        [HideInInspector] public float valorPotenciometro = 0f;
-        [HideInInspector] public float ultimoAngulo = 0f;
-        [HideInInspector] public bool primeiraVez = true;
-
-        public void Inicializar(float valorInicial)
-        {
-            valorAtual = valorInicial;
-            float sens = Mathf.Abs(sensibilidade) > 0.0001f ? sensibilidade : 0.01f;
-            valorPotenciometro = valorAtual / sens;
-            primeiraVez = true;
-        }
-
-        public void ProcessarRotacao(float anguloAtual, ModoRotacao modo)
-        {
-            if (modo == ModoRotacao.PotenciometroContinuo)
-            {
-                if (primeiraVez)
-                {
-                    ultimoAngulo = anguloAtual;
-                    primeiraVez = false;
-                }
-
-                float giro = Mathf.DeltaAngle(ultimoAngulo, anguloAtual);
-                valorPotenciometro += giro;
-                ultimoAngulo = anguloAtual;
-                valorAtual = valorPotenciometro * sensibilidade;
-            }
-            else // AnguloAbsoluto
-            {
-                valorAtual = anguloAtual * sensibilidade;
-            }
-
-            if (limitarValor)
-            {
-                valorAtual = Mathf.Clamp(valorAtual, valorMin, valorMax);
-                if (modo == ModoRotacao.PotenciometroContinuo)
-                {
-                    float sens = Mathf.Abs(sensibilidade) > 0.0001f ? sensibilidade : 0.01f;
-                    valorPotenciometro = valorAtual / sens;
-                }
-            }
-        }
-
-        public void ResetarGiro()
-        {
-            primeiraVez = true;
-        }
-    }
-
-    // ============================================================================================
-    // One Euro Filter (CHI 2012) — padrão ouro para estabilização de tracking em AR/VR
-    // Filtra forte quando parado (mata jitter), solta quando se move (sem lag)
-    // ============================================================================================
-    private class OneEuroFilterFloat
-    {
-        float minCutoff, beta, dCutoff;
-        float prevValue, prevDeriv, prevTime;
-        bool started;
-
-        public OneEuroFilterFloat(float minCutoff = 0.3f, float beta = 0.00001f, float dCutoff = 1.0f)
-        {
-            this.minCutoff = minCutoff;
-            this.beta = beta;
-            this.dCutoff = dCutoff;
-            started = false;
-        }
-
-        float Alpha(float cutoff, float dt)
-        {
-            float tau = 1.0f / (2f * Mathf.PI * cutoff);
-            return 1.0f / (1.0f + tau / Mathf.Max(dt, 0.001f));
-        }
-
-        public float Filter(float value, float timestamp)
-        {
-            if (!started)
-            {
-                prevValue = value;
-                prevDeriv = 0f;
-                prevTime = timestamp;
-                started = true;
-                return value;
-            }
-
-            float dt = timestamp - prevTime;
-            if (dt <= 0f) dt = 1f / 30f;
-            prevTime = timestamp;
-
-            float deriv = (value - prevValue) / dt;
-            float aD = Alpha(dCutoff, dt);
-            deriv = aD * deriv + (1f - aD) * prevDeriv;
-
-            float cutoff = minCutoff + beta * Mathf.Abs(deriv);
-            float a = Alpha(cutoff, dt);
-            float filtered = a * value + (1f - a) * prevValue;
-
-            prevValue = filtered;
-            prevDeriv = deriv;
-            return filtered;
-        }
-
-        public void Reset() { started = false; }
-    }
-
-    private class OneEuroFilterVec3
-    {
-        OneEuroFilterFloat fx, fy, fz;
-
-        public OneEuroFilterVec3(float minCutoff = 0.3f, float beta = 0.00001f, float dCutoff = 1.0f)
-        {
-            fx = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
-            fy = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
-            fz = new OneEuroFilterFloat(minCutoff, beta, dCutoff);
-        }
-
-        public Vector3 Filter(Vector3 v, float t)
-        {
-            return new Vector3(fx.Filter(v.x, t), fy.Filter(v.y, t), fz.Filter(v.z, t));
-        }
-
-        public void Reset() { fx.Reset(); fy.Reset(); fz.Reset(); }
-    }
-
     // ============================================================================================
     // Campos públicos do Inspector
     // ============================================================================================
@@ -165,78 +32,59 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     public float suavizacaoAncora = 10.0f;
 
     [Header("Conexão com Câmera")]
+    [Tooltip("Usado para criar o ArCoreFonteCamera quando nenhuma fonte for indicada")]
     public ARCameraManager cameraManager;
     public Camera cameraAR;
+    [Tooltip("Opcional: componente que implementa IFonteCameraProvider (ex.: QuestFonteCamera). " +
+             "Se vazio, usa/cria um ArCoreFonteCamera neste objeto.")]
+    public MonoBehaviour fonteCameraComponente;
 
     [Header("Integração com Gráfico")]
     public VisualizadorFuncaoQuadratica visualizadorFuncao;
 
     [Header("Modo de Rotação Global")]
-    public ModoRotacao modo = ModoRotacao.PotenciometroContinuo;
+    public ModoRotacaoAruco modo = ModoRotacaoAruco.PotenciometroContinuo;
 
     [Header("Controle dos Coeficientes da Função f(x) = ax² + bx + c")]
     [Tooltip("Controla o termo quadrático 'a'")]
-    public ParametroAruco parametroA = new ParametroAruco 
-    { 
-        nome = "a (Curvatura x²)", 
-        idAlvo = 42, 
-        valorAtual = 1.0f, 
-        sensibilidade = 0.01f, 
-        limitarValor = true, 
-        valorMin = -5.0f, 
-        valorMax = 5.0f 
+    public ParametroAruco parametroA = new ParametroAruco
+    {
+        nome = "a (Curvatura x²)", idAlvo = 42, valorAtual = 1.0f, sensibilidade = 0.01f,
+        limitarValor = true, valorMin = -5.0f, valorMax = 5.0f
     };
 
     [Tooltip("Controla o termo linear 'b'")]
-    public ParametroAruco parametroB = new ParametroAruco 
-    { 
-        nome = "b (Inclinação x)", 
-        idAlvo = 43, 
-        valorAtual = 0.0f, 
-        sensibilidade = 0.01f, 
-        limitarValor = true, 
-        valorMin = -5.0f, 
-        valorMax = 5.0f 
+    public ParametroAruco parametroB = new ParametroAruco
+    {
+        nome = "b (Inclinação x)", idAlvo = 43, valorAtual = 0.0f, sensibilidade = 0.01f,
+        limitarValor = true, valorMin = -5.0f, valorMax = 5.0f
     };
 
     [Tooltip("Controla o termo independente 'c'")]
-    public ParametroAruco parametroC = new ParametroAruco 
-    { 
-        nome = "c (Intercepto Y)", 
-        idAlvo = 44, 
-        valorAtual = 0.0f, 
-        sensibilidade = 0.01f, 
-        limitarValor = true, 
-        valorMin = -5.0f, 
-        valorMax = 5.0f 
+    public ParametroAruco parametroC = new ParametroAruco
+    {
+        nome = "c (Intercepto Y)", idAlvo = 44, valorAtual = 0.0f, sensibilidade = 0.01f,
+        limitarValor = true, valorMin = -5.0f, valorMax = 5.0f
     };
 
     // ============================================================================================
-    // Campos privados e Estado Global
+    // Estado
     // ============================================================================================
 
-    [HideInInspector] 
-    public System.Collections.Generic.HashSet<int> marcadoresVisiveisNesteFrame = new System.Collections.Generic.HashSet<int>();
+    /// <summary>IDs vistos no último frame de câmera (usado pelo BotaoTangivelAruco).</summary>
+    [HideInInspector]
+    public HashSet<int> marcadoresVisiveisNesteFrame = new HashSet<int>();
 
-    [DllImport("MinhaArucoDLL2")]
-    private static extern int DetectarMultiplosArucos(
-        IntPtr pixels, int width, int height, int channels,
-        int maxMarcadores, int[] outIds, float[] outCorners
-    );
-
-    private const int MAX_MARCADORES = 10;
-    private int[] bufferIds = new int[MAX_MARCADORES];
-    private float[] bufferCantos = new float[MAX_MARCADORES * 8];
-
-    // Buffer usado quando a imagem tem bytes de "padding" no fim de cada linha (rowStride > largura).
-    // A DLL nativa assume linhas contíguas, então compactamos antes de chamá-la.
-    private byte[] bufferCompacto;
+    // Serviços
+    private IFonteCameraProvider fonte;
+    private ArucoDetectorService detector;
+    private bool assinado;
 
     // Estado da Âncora (Marcador 40)
     private bool isAncoradoNoMundo = false;
     private Vector3 posicaoAlvo40;
     private Quaternion rotacaoAlvo40;
-    
+
     // Filtro de cantos 2D
     private Vector2[] cantosSuavizados40 = new Vector2[4];
     private bool primeiraVez40 = true;
@@ -280,98 +128,76 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         // One Euro: minCutoff baixo = suave quando parado, beta baixo = pouca reação a velocidade
         filtroPos = new OneEuroFilterVec3(0.4f, 0.0001f, 1.0f);
         filtroYaw = new OneEuroFilterFloat(0.3f, 0.00005f, 1.0f);
+
+        // Detector só de cantos/IDs: a pose do marcador 40 é calculada aqui, como antes
+        detector = new ArucoDetectorService { calcularPose = false };
+        fonte = ResolverFonte();
+        Assinar();
     }
 
-    void OnEnable()
+    void OnEnable() => Assinar();   // no primeiro OnEnable a fonte ainda é null; o Start assina
+    void OnDisable() => Desassinar();
+
+    private IFonteCameraProvider ResolverFonte()
     {
-        if (cameraManager != null)
-            cameraManager.frameReceived += OnCameraFrameReceived;
+        if (fonteCameraComponente is IFonteCameraProvider indicada) return indicada;
+        if (fonteCameraComponente != null)
+            Debug.LogWarning($"[RastreadorAruco] {fonteCameraComponente.GetType().Name} não implementa IFonteCameraProvider; usando ARCore.");
+
+        var arcore = GetComponent<ArCoreFonteCamera>();
+        if (arcore == null) arcore = gameObject.AddComponent<ArCoreFonteCamera>();
+        if (cameraManager != null) arcore.DefinirCameraManager(cameraManager);
+        return arcore;
     }
 
-    void OnDisable()
+    private void Assinar()
     {
-        if (cameraManager != null)
-            cameraManager.frameReceived -= OnCameraFrameReceived;
+        if (assinado || fonte == null) return;
+        fonte.OnFrame += AoReceberFrame;
+        assinado = true;
     }
 
-    // Obs.: este componente NÃO move mais o gráfico. Ele só calcula a pose alvo
+    private void Desassinar()
+    {
+        if (!assinado) return;
+        if (fonte != null) fonte.OnFrame -= AoReceberFrame;
+        assinado = false;
+    }
+
+    // Obs.: este componente NÃO move o gráfico. Ele só calcula a pose alvo
     // (IAncoraMundoProvider) e o VisualizadorFuncaoQuadratica é o único dono do transform.
-    // O duplo toque para desancorar foi movido para GestosToqueMobile.
+    // O duplo toque para desancorar fica no GestosToqueMobile.
 
     // ============================================================================================
-    // Processamento de Frame da Câmera AR
+    // Processamento de cada frame da câmera
     // ============================================================================================
 
-    unsafe void OnCameraFrameReceived(ARCameraFrameEventArgs eventArgs)
+    private void AoReceberFrame(FrameCamera frame)
     {
-        if (!cameraManager.TryAcquireLatestCpuImage(out var image))
-            return;
-
-        var planoY = image.GetPlane(0);
-        IntPtr ponteiroPixels = (IntPtr)planoY.data.GetUnsafePtr();
-        int channels = planoY.pixelStride;
+        if (detector == null) return;
 
         try
         {
-            int bytesPorLinha = image.width * channels;
-            int totalDetectados;
-
-            if (planoY.rowStride == bytesPorLinha)
-            {
-                // Linhas contíguas: passa o ponteiro direto, sem cópia
-                totalDetectados = DetectarMultiplosArucos(
-                    ponteiroPixels, image.width, image.height, channels,
-                    MAX_MARCADORES, bufferIds, bufferCantos
-                );
-            }
-            else
-            {
-                // Linhas com padding (comum no Android): copia linha a linha para um buffer contíguo
-                int tamanho = bytesPorLinha * image.height;
-                if (bufferCompacto == null || bufferCompacto.Length < tamanho)
-                    bufferCompacto = new byte[tamanho];
-
-                byte* origem = (byte*)ponteiroPixels;
-                fixed (byte* destino = bufferCompacto)
-                {
-                    for (int linha = 0; linha < image.height; linha++)
-                    {
-                        UnsafeUtility.MemCpy(destino + linha * bytesPorLinha,
-                                             origem + linha * planoY.rowStride,
-                                             bytesPorLinha);
-                    }
-
-                    totalDetectados = DetectarMultiplosArucos(
-                        (IntPtr)destino, image.width, image.height, channels,
-                        MAX_MARCADORES, bufferIds, bufferCantos
-                    );
-                }
-            }
+            IReadOnlyList<MarcadorDetectado> marcadores = detector.Detectar(frame);
 
             bool achouA = false, achouB = false, achouC = false, achou40 = false;
             marcadoresVisiveisNesteFrame.Clear();
 
-            for (int i = 0; i < totalDetectados; i++)
+            for (int i = 0; i < marcadores.Count; i++)
             {
-                int id = bufferIds[i];
-                marcadoresVisiveisNesteFrame.Add(id);
-                
-                int offset = i * 8;
-                float x0 = bufferCantos[offset + 0], y0 = bufferCantos[offset + 1];
-                float x1 = bufferCantos[offset + 2], y1 = bufferCantos[offset + 3];
-                float x2 = bufferCantos[offset + 4], y2 = bufferCantos[offset + 5];
-                float x3 = bufferCantos[offset + 6], y3 = bufferCantos[offset + 7];
+                MarcadorDetectado m = marcadores[i];
+                marcadoresVisiveisNesteFrame.Add(m.id);
 
-                float anguloAtual = Mathf.Atan2(y1 - y0, x1 - x0) * Mathf.Rad2Deg;
+                float anguloAtual = m.AnguloImagemGraus;
 
-                if (id == parametroA.idAlvo) { parametroA.ProcessarRotacao(anguloAtual, modo); achouA = true; }
-                else if (id == parametroB.idAlvo) { parametroB.ProcessarRotacao(anguloAtual, modo); achouB = true; }
-                else if (id == parametroC.idAlvo) { parametroC.ProcessarRotacao(anguloAtual, modo); achouC = true; }
+                if (m.id == parametroA.idAlvo) { parametroA.ProcessarRotacao(anguloAtual, modo); achouA = true; }
+                else if (m.id == parametroB.idAlvo) { parametroB.ProcessarRotacao(anguloAtual, modo); achouB = true; }
+                else if (m.id == parametroC.idAlvo) { parametroC.ProcessarRotacao(anguloAtual, modo); achouC = true; }
 
-                if (id == idAlvoMesa)
+                if (m.id == idAlvoMesa)
                 {
                     // Só conta como "achou" se a pose foi realmente calculada neste frame
-                    achou40 = ProcessarPosicionamentoMarcador40(x0, y0, x1, y1, x2, y2, x3, y3, image.width, image.height);
+                    achou40 = ProcessarPosicionamentoMarcador40(m.c0, m.c1, m.c2, m.c3, frame.largura, frame.altura);
                 }
             }
 
@@ -383,16 +209,10 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
             if (!achouA) parametroA.ResetarGiro();
             if (!achouB) parametroB.ResetarGiro();
             if (!achouC) parametroC.ResetarGiro();
-
-            // Não empurra mais os coeficientes para o visualizador: ele os lê via IParametroProvider.
         }
         catch (Exception e)
         {
             Debug.LogError($"Erro ao processar ArUco ou DLL: {e.Message}");
-        }
-        finally
-        {
-            image.Dispose();
         }
     }
 
@@ -409,16 +229,13 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
 
     /// <returns>true se posicaoAlvo40/rotacaoAlvo40 foram atualizadas com uma pose válida.</returns>
     private bool ProcessarPosicionamentoMarcador40(
-        float x0, float y0, float x1, float y1,
-        float x2, float y2, float x3, float y3,
+        Vector2 c0, Vector2 c1, Vector2 c2, Vector2 c3,
         int imgWidth, int imgHeight)
     {
         if (cameraAR == null) cameraAR = Camera.main;
         if (cameraAR == null) return false;
 
         // 1. Suavizar cantos 2D (deadzone adaptativa)
-        Vector2 c0 = new Vector2(x0, y0), c1 = new Vector2(x1, y1);
-        Vector2 c2 = new Vector2(x2, y2), c3 = new Vector2(x3, y3);
 
         if (primeiraVez40)
         {

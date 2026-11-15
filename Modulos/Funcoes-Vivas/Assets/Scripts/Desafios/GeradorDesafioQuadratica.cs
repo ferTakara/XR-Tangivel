@@ -12,6 +12,12 @@ public class GeradorDesafioQuadratica : MonoBehaviour
     /// <summary>Disparado uma vez quando o aluno acerta os 3 pontos do desafio atual.</summary>
     public event Action OnDesafioResolvido;
 
+    /// <summary>Disparado sempre que um novo desafio é sorteado.</summary>
+    public event Action OnDesafioGerado;
+
+    /// <summary>Coeficientes (a, b, c) do desafio atual.</summary>
+    public Vector3 Alvo => new Vector3(alvoA, alvoB, alvoC);
+
     private float alvoA, alvoB, alvoC;
     private GameObject[] pontosNaTela = new GameObject[3];
     private Renderer[] renderersPontos = new Renderer[3];
@@ -24,8 +30,12 @@ public class GeradorDesafioQuadratica : MonoBehaviour
         // Tenta achar o visualizador no próprio objeto se a caixinha estiver vazia
         if (visualizador == null)
             visualizador = GetComponent<VisualizadorFuncaoQuadratica>();
+        if (visualizador == null)
+            visualizador = FindAnyObjectByType<VisualizadorFuncaoQuadratica>();
 
-        GerarNovoDesafio();
+        // O ControladorSessao pode já ter gerado o primeiro desafio (AtivarModo) antes deste Start
+        if (pontosNaTela[0] == null)
+            GerarNovoDesafio();
     }
 
     public void GerarNovoDesafio()
@@ -92,6 +102,7 @@ public class GeradorDesafioQuadratica : MonoBehaviour
         desafioResolvido = false;
 
         Debug.Log($"<color=yellow>Novo desafio gerado! Alvo: A={alvoA}, B={alvoB}, C={alvoC}</color>");
+        OnDesafioGerado?.Invoke();
     }
 
     private void DefinirCor(Renderer rend, Color cor)
