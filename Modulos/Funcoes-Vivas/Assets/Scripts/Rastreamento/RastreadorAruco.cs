@@ -31,6 +31,26 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     [Tooltip("Velocidade de suavização do movimento até a âncora do marcador")]
     public float suavizacaoAncora = 10.0f;
 
+    [Header("Estabilização da Âncora (no espaço do mundo)")]
+    [Tooltip("Tempo da média da posição lateral e da rotação (s). Maior = mais firme, mais lento para corrigir.")]
+    public float tempoSuavizacaoAncora = 0.5f;
+    [Tooltip("Tempo da média da DISTÂNCIA até o cartão (s): a medida mais ruidosa, por isso mais longa.")]
+    public float tempoSuavizacaoProfundidade = 1.5f;
+    [Tooltip("Deslocamento lateral abaixo disto (m) é tratado como ruído (o cartão está parado na mesa).")]
+    public float limiarMovimentoMetros = 0.03f;
+    [Tooltip("Variação de distância abaixo disto (m) é tratada como ruído.")]
+    public float limiarProfundidadeMetros = 0.15f;
+    [Tooltip("Variação de rotação abaixo disto (graus) é tratada como ruído.")]
+    public float limiarMovimentoGraus = 8f;
+    [Tooltip("Frames seguidos fora dos limiares para aceitar que o cartão foi movido.")]
+    public int framesParaMover = 5;
+
+    [Header("Movimento da Câmera")]
+    [Tooltip("Acima desta velocidade de giro (graus/s) as medições do cartão 40 são ignoradas e a âncora fica parada.")]
+    public float velocidadeAngularMaxGraus = 20f;
+    [Tooltip("Acima desta velocidade de deslocamento (m/s) as medições do cartão 40 são ignoradas.")]
+    public float velocidadeLinearMax = 0.2f;
+
     [Header("Conexão com Câmera")]
     [Tooltip("Usado para criar o ArCoreFonteCamera quando nenhuma fonte for indicada")]
     public ARCameraManager cameraManager;
@@ -85,14 +105,16 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     private Vector3 posicaoAlvo40;
     private Quaternion rotacaoAlvo40;
 
-    // Filtro de cantos 2D
-    private Vector2[] cantosSuavizados40 = new Vector2[4];
-    private bool primeiraVez40 = true;
-
-    // One Euro Filters para posição e yaw
-    private OneEuroFilterVec3 filtroPos;
-    private OneEuroFilterFloat filtroYaw;
+    // Estabilização da âncora no espaço do MUNDO (o cartão fica parado na mesa)
+    private readonly EstabilizadorPoseEstatica estabilizador = new EstabilizadorPoseEstatica();
     private float yawAnterior = 0f;
+    private bool primeiroYaw = true;
+
+    // Movimento da câmera entre frames
+    private Pose poseCameraAnterior;
+    private float tempoFrameAnterior = -1f;
+    private float velocidadeAngularCamera; // graus/s
+    private float velocidadeLinearCamera;  // m/s
 
     // ============================================================================================
     // Ciclo de vida Unity
@@ -124,10 +146,6 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
             visualizadorFuncao.RegistrarProvedorParametros(this);
             visualizadorFuncao.RegistrarProvedorAncora(this);
         }
-
-        // One Euro: minCutoff baixo = suave quando parado, beta baixo = pouca reação a velocidade
-        filtroPos = new OneEuroFilterVec3(0.4f, 0.0001f, 1.0f);
-        filtroYaw = new OneEuroFilterFloat(0.3f, 0.00005f, 1.0f);
 
         // Detector só de cantos/IDs: a pose do marcador 40 é calculada aqui, como antes
         detector = new ArucoDetectorService { calcularPose = false };
@@ -175,6 +193,7 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     private void AoReceberFrame(FrameCamera frame)
     {
         if (detector == null) return;
+        AtualizarVelocidadeCamera(frame.poseCameraMundo);
 
         try
         {
@@ -235,25 +254,13 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         if (cameraAR == null) cameraAR = Camera.main;
         if (cameraAR == null) return false;
 
-        // 1. Suavizar cantos 2D (deadzone adaptativa)
+        // 1. Cantos crus, SEM suavizar na imagem. Suavizar na imagem e converter com a pose atual
+        //    da câmera fazia o gráfico "escorregar" junto com o movimento da câmera.
+        //    A estabilização agora é feita no espaço do mundo, onde o cartão está parado.
 
-        if (primeiraVez40)
-        {
-            cantosSuavizados40[0] = c0; cantosSuavizados40[1] = c1;
-            cantosSuavizados40[2] = c2; cantosSuavizados40[3] = c3;
-            primeiraVez40 = false;
-        }
-        else
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                Vector2 cNovo = i == 0 ? c0 : i == 1 ? c1 : i == 2 ? c2 : c3;
-                float distPx = Vector2.Distance(cantosSuavizados40[i], cNovo);
-                // < 3px = ruído da OpenCV → congelar; > 3px = movimento real → acompanhar
-                float suavidade = distPx < 3.0f ? 1.0f : 12.0f;
-                cantosSuavizados40[i] = Vector2.Lerp(cantosSuavizados40[i], cNovo, Time.deltaTime * suavidade);
-            }
-        }
+        // Câmera girando/andando rápido: a imagem e a pose da câmera não batem exatamente nesse
+        // instante. Ignora a medição e mantém a âncora onde está.
+        if (CameraEmMovimentoRapido()) return isAncoradoNoMundo;
 
         // 2. Converter pixels do sensor (OpenCV) → Viewport do Unity
         bool isPortrait = Screen.width < Screen.height;
@@ -267,16 +274,16 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
                 return new Vector2(pixel.x / imgWidth, 1.0f - (pixel.y / imgHeight));
         }
 
-        Vector2 vp0 = ToViewport(cantosSuavizados40[0]);
-        Vector2 vp1 = ToViewport(cantosSuavizados40[1]);
-        Vector2 vp2 = ToViewport(cantosSuavizados40[2]);
-        Vector2 vp3 = ToViewport(cantosSuavizados40[3]);
+        Vector2 vp0 = ToViewport(c0);
+        Vector2 vp1 = ToViewport(c1);
+        Vector2 vp2 = ToViewport(c2);
+        Vector2 vp3 = ToViewport(c3);
 
         // 3. Distância Z média (média das 4 arestas = máxima estabilidade)
-        float e0 = Vector2.Distance(cantosSuavizados40[0], cantosSuavizados40[1]);
-        float e1 = Vector2.Distance(cantosSuavizados40[1], cantosSuavizados40[2]);
-        float e2 = Vector2.Distance(cantosSuavizados40[2], cantosSuavizados40[3]);
-        float e3 = Vector2.Distance(cantosSuavizados40[3], cantosSuavizados40[0]);
+        float e0 = Vector2.Distance(c0, c1);
+        float e1 = Vector2.Distance(c1, c2);
+        float e2 = Vector2.Distance(c2, c3);
+        float e3 = Vector2.Distance(c3, c0);
         float avgEdge = (e0 + e1 + e2 + e3) * 0.25f;
         if (avgEdge < 8f) return false; // marcador pequeno/longe demais: pose não confiável
 
@@ -312,14 +319,24 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
 
         // Extrair yaw bruto e tratar descontinuidade angular (-180/+180)
         float yawRaw = Mathf.Atan2(forwardGrafico.x, forwardGrafico.z) * Mathf.Rad2Deg;
+        if (primeiroYaw) { yawAnterior = yawRaw; primeiroYaw = false; }
         float diffYaw = Mathf.DeltaAngle(yawAnterior, yawRaw);
         yawRaw = yawAnterior + diffYaw;
         yawAnterior = yawRaw;
 
-        // 6. Aplicar One Euro Filter (mata o jitter residual)
-        float tempo = Time.time;
-        Vector3 posFiltrada = filtroPos.Filter(posRaw, tempo);
-        float yawFiltrado = filtroYaw.Filter(yawRaw, tempo);
+        // 6. Estabilização no mundo: ruído pequeno vira média lenta (a distância, mais ruidosa,
+        //    tem média mais longa); só salta quando o cartão é realmente movido.
+        estabilizador.tau = tempoSuavizacaoAncora;
+        estabilizador.tauProfundidade = tempoSuavizacaoProfundidade;
+        estabilizador.limiarMovimentoMetros = limiarMovimentoMetros;
+        estabilizador.limiarProfundidadeMetros = limiarProfundidadeMetros;
+        estabilizador.limiarMovimentoGraus = limiarMovimentoGraus;
+        estabilizador.framesParaMover = framesParaMover;
+        Vector3 direcaoRaio = (posRaw - cameraAR.transform.position).normalized;
+        estabilizador.Atualizar(posRaw, yawRaw, Time.time, direcaoRaio);
+
+        Vector3 posFiltrada = estabilizador.Posicao;
+        float yawFiltrado = estabilizador.YawGraus;
 
         // 7. Construir rotação final
         rotacaoAlvo40 = Quaternion.LookRotation(
@@ -330,6 +347,26 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         posicaoAlvo40 = posFiltrada + rotacaoAlvo40 * offsetAncoraMarcador;
         return true;
     }
+
+    // ============================================================================================
+    // Movimento da câmera
+    // ============================================================================================
+
+    private void AtualizarVelocidadeCamera(Pose poseAtual)
+    {
+        float agora = Time.time;
+        if (tempoFrameAnterior >= 0f)
+        {
+            float dt = Mathf.Max(agora - tempoFrameAnterior, 0.001f);
+            velocidadeAngularCamera = Quaternion.Angle(poseCameraAnterior.rotation, poseAtual.rotation) / dt;
+            velocidadeLinearCamera = Vector3.Distance(poseCameraAnterior.position, poseAtual.position) / dt;
+        }
+        poseCameraAnterior = poseAtual;
+        tempoFrameAnterior = agora;
+    }
+
+    private bool CameraEmMovimentoRapido() =>
+        velocidadeAngularCamera > velocidadeAngularMaxGraus || velocidadeLinearCamera > velocidadeLinearMax;
 
     // ============================================================================================
     // Implementação das Interfaces Multiplataforma (IParametroProvider e IAncoraMundoProvider)
@@ -353,8 +390,7 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     {
         isAncoradoNoMundo = false;
         if (visualizadorFuncao != null) visualizadorFuncao.seguirCamera = true;
-        primeiraVez40 = true;
-        if (filtroPos != null) filtroPos.Reset();
-        if (filtroYaw != null) filtroYaw.Reset();
+        primeiroYaw = true;
+        estabilizador.Reset();
     }
 }
