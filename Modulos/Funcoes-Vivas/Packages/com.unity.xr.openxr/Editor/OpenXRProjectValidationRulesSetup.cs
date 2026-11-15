@@ -1,3 +1,4 @@
+#pragma warning disable CS0619
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -203,7 +204,10 @@ namespace UnityEditor.XR.OpenXR
         [OnOpenAsset(0)]
         static bool ConsoleErrorDoubleClicked(int instanceId, int line)
         {
-            var objName = EditorUtility.InstanceIDToObject(instanceId).name;
+            #pragma warning disable CS0619
+            var obj = EditorUtility.InstanceIDToObject(instanceId);
+            var objName = obj != null ? obj.name : null;
+#pragma warning restore CS0619
             if (objName == "OpenXRProjectValidation")
             {
                 OpenXRProjectValidationRulesSetup.ShowWindow();
