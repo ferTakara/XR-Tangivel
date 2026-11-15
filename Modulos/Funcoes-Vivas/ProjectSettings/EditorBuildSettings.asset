@@ -8,6 +8,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 0
+    path: Assets/Scenes/Quest_FuncoesVivas.unity
+    guid: cd6169cb5c6b4b1e8310e0658bd3a90e
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: f01e8ef148b8b6f40af0f1b24a49ee31, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 5e55363c889b94d4baf0a8baa3b27982, type: 2}
