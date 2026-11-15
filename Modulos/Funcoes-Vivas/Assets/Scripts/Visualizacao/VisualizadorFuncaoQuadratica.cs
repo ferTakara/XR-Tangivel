@@ -45,6 +45,9 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
     public Vector3 offsetCamera = new Vector3(0f, -0.1f, 0f);
     public float suavizacaoSeguir = 5.0f;
 
+    [Tooltip("Velocidade de suavização ao ir até a pose da âncora (ArUco 40 / mesa do Quest)")]
+    public float suavizacaoAncora = 10.0f;
+
     [Header("Referências de Componentes (Opcional)")]
     public LineRenderer linhaParabola;
     public LineRenderer linhaEixos;
@@ -55,6 +58,9 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
     private IAncoraMundoProvider provedorAncora;
 
     private Camera camPrincipal;
+    private bool estavaAncorado = false;
+
+    public IAncoraMundoProvider ProvedorAncora => provedorAncora;
 
     public void RegistrarProvedorParametros(IParametroProvider provedor)
     {
@@ -123,16 +129,29 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
             }
         }
 
-        // Se há um provedor de âncora ativo
-        if (provedorAncora != null && provedorAncora.EstaAncorado)
+        // Âncora: este componente é o ÚNICO que move o transform do gráfico.
+        bool ancoradoAgora = provedorAncora != null && provedorAncora.EstaAncorado;
+
+        if (ancoradoAgora && provedorAncora.TentarObterPose(out Vector3 posAlvo, out Quaternion rotAlvo))
         {
-            if (provedorAncora.TentarObterPose(out Vector3 posAlvo, out Quaternion rotAlvo))
-            {
-                seguirCamera = false;
-                transform.position = Vector3.Lerp(transform.position, posAlvo, Time.deltaTime * suavizacaoSeguir);
-                transform.rotation = Quaternion.Slerp(transform.rotation, rotAlvo, Time.deltaTime * suavizacaoSeguir);
-            }
+            seguirCamera = false;
+
+            // Deadzone: diferença minúscula -> velocidade baixa para "congelar" e não tremer
+            float dist = Vector3.Distance(transform.position, posAlvo);
+            float ang = Quaternion.Angle(transform.rotation, rotAlvo);
+            float velPos = dist < 0.01f ? 2.0f : suavizacaoAncora;
+            float velRot = ang < 2.0f ? 2.0f : suavizacaoAncora;
+
+            transform.position = Vector3.Lerp(transform.position, posAlvo, Time.deltaTime * velPos);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rotAlvo, Time.deltaTime * velRot);
         }
+        else if (estavaAncorado && !ancoradoAgora)
+        {
+            // Provedor desancorou (ArUco ou Quest): volta a seguir a câmera
+            seguirCamera = true;
+        }
+
+        estavaAncorado = ancoradoAgora;
     }
 
     void LateUpdate()

@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
+using XRTangivel.Core;
 
 /// <summary>
 /// Gerencia gestos de toque na tela do celular (Mobile AR):
 /// - Pinça com 2 dedos: Zoom in / Zoom out no gráfico matemático.
 /// - Arrastar com 2 dedos: Desloca o gráfico (Pan) para cima, baixo e lados.
-/// - Toque duplo com 1 dedo: Reseta escala e posição para o padrão.
+/// - Toque duplo com 1 dedo: se o gráfico estiver ancorado, desancora; senão, reseta escala e posição.
 /// - Toque duplo com 2 dedos: Sorteia um novo desafio/quebra-cabeça.
 /// Também funciona no Unity Editor com Scroll do Mouse e clique do botão do meio.
 /// </summary>
@@ -29,8 +30,10 @@ public class GestosToqueMobile : MonoBehaviour
     private Vector3 escalaInicial;
     private Vector3 offsetInicial;
 
-    // Controle de toque duplo
-    private float ultimoToqueTempo = 0f;
+    // Controle de toque duplo (timers separados para 1 e 2 dedos não se confundirem)
+    private float ultimoToque1DedoTempo = -1f;
+    private float ultimoToque2DedosTempo = -1f;
+    private float ultimoCliqueMouseTempo = -1f;
     private const float INTERVALO_TOQUE_DUPLO = 0.35f;
 
     void Start()
@@ -77,19 +80,25 @@ public class GestosToqueMobile : MonoBehaviour
             Touch toque1 = Input.GetTouch(1);
 
             // Detecção de Toque Duplo com 2 dedos -> Gera novo desafio
+            if (toque0.phase == TouchPhase.Began || toque1.phase == TouchPhase.Began)
+            {
+                // Um segundo dedo encostando invalida um eventual toque duplo de 1 dedo
+                ultimoToque1DedoTempo = -1f;
+            }
+
             if (toque0.phase == TouchPhase.Began && toque1.phase == TouchPhase.Began)
             {
-                if (Time.time - ultimoToqueTempo < INTERVALO_TOQUE_DUPLO)
+                if (ultimoToque2DedosTempo >= 0f && Time.time - ultimoToque2DedosTempo < INTERVALO_TOQUE_DUPLO)
                 {
                     if (geradorDesafio != null)
                     {
                         Debug.Log("<color=cyan>[GESTO] Toque duplo com 2 dedos: Gerando novo desafio!</color>");
                         geradorDesafio.GerarNovoDesafio();
                     }
-                    ultimoToqueTempo = 0f;
+                    ultimoToque2DedosTempo = -1f;
                     return;
                 }
-                ultimoToqueTempo = Time.time;
+                ultimoToque2DedosTempo = Time.time;
             }
 
             // Posições dos dedos no frame anterior
@@ -128,14 +137,14 @@ public class GestosToqueMobile : MonoBehaviour
             Touch toque = Input.GetTouch(0);
             if (toque.phase == TouchPhase.Began)
             {
-                if (Time.time - ultimoToqueTempo < INTERVALO_TOQUE_DUPLO)
+                if (ultimoToque1DedoTempo >= 0f && Time.time - ultimoToque1DedoTempo < INTERVALO_TOQUE_DUPLO)
                 {
-                    ResetarPosicaoEEscala();
-                    ultimoToqueTempo = 0f;
+                    AcaoToqueDuplo();
+                    ultimoToque1DedoTempo = -1f;
                 }
                 else
                 {
-                    ultimoToqueTempo = Time.time;
+                    ultimoToque1DedoTempo = Time.time;
                 }
             }
         }
@@ -169,6 +178,20 @@ public class GestosToqueMobile : MonoBehaviour
             visualizador.offsetCamera.y += mouseY * 0.05f;
         }
 
+        // Duplo clique esquerdo = mesmo comportamento do toque duplo com 1 dedo
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (ultimoCliqueMouseTempo >= 0f && Time.time - ultimoCliqueMouseTempo < INTERVALO_TOQUE_DUPLO)
+            {
+                AcaoToqueDuplo();
+                ultimoCliqueMouseTempo = -1f;
+            }
+            else
+            {
+                ultimoCliqueMouseTempo = Time.time;
+            }
+        }
+
         // Pressionar tecla 'R' no editor = Reset
         if (Input.GetKeyDown(KeyCode.R))
         {
@@ -179,6 +202,24 @@ public class GestosToqueMobile : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.N) && geradorDesafio != null)
         {
             geradorDesafio.GerarNovoDesafio();
+        }
+    }
+
+    /// <summary>
+    /// Toque duplo com 1 dedo: único dono deste gesto (antes RastreadorAruco também reagia a ele).
+    /// Ancorado -> desancora. Solto -> reseta posição e escala.
+    /// </summary>
+    private void AcaoToqueDuplo()
+    {
+        IAncoraMundoProvider ancora = visualizador != null ? visualizador.ProvedorAncora : null;
+        if (ancora != null && ancora.EstaAncorado)
+        {
+            ancora.Desancorar();
+            Debug.Log("<color=cyan>[GESTO] Toque duplo: gráfico desancorado.</color>");
+        }
+        else
+        {
+            ResetarPosicaoEEscala();
         }
     }
 

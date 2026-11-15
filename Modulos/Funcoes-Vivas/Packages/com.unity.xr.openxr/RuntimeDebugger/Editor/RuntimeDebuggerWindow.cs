@@ -11,13 +11,13 @@ using UnityEngine.XR.OpenXR.Features.RuntimeDebugger;
 
 namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
 {
-    internal class DebuggerTreeView : TreeView
+    internal class DebuggerTreeView : TreeView<int>
     {
         private int _mode;
         public new string searchString { get; set; }
         private bool deep = false;
 
-        public DebuggerTreeView(TreeViewState state, int mode, string search = "")
+        public DebuggerTreeView(TreeViewState<int> state, int mode, string search = "")
             : base(state)
         {
             _mode = mode;
@@ -124,7 +124,7 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
         }
 
         private Vector2 scrollpos = new Vector2();
-        private List<TreeViewState> treeViewState = new List<TreeViewState>();
+        private List<TreeViewState<int>> treeViewState = new List<TreeViewState<int>>();
         private DebuggerTreeView treeView;
         private SearchField searchField = null;
         private string searchString = "";
@@ -177,7 +177,7 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
                         treeViewState.Clear();
                         for (int i = 0; i < DebuggerState.lutNames.Count; ++i)
                         {
-                            treeViewState.Add(new TreeViewState());
+                            treeViewState.Add(new TreeViewState<int>());
                         }
                     }
 
@@ -234,7 +234,7 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
                             treeViewState.Clear();
                             for (int i = 0; i < DebuggerState.lutNames.Count; ++i)
                             {
-                                treeViewState.Add(new TreeViewState());
+                                treeViewState.Add(new TreeViewState<int>());
                             }
                         }
 

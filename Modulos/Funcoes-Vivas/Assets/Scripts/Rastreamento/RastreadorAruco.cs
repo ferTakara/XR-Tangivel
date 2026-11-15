@@ -233,10 +233,6 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     private Vector3 posicaoAlvo40;
     private Quaternion rotacaoAlvo40;
     
-    // Controle de duplo clique (Double Tap)
-    private float lastTapTime = 0f;
-    private const float DOUBLE_TAP_THRESHOLD = 0.3f;
-
     // Filtro de cantos 2D
     private Vector2[] cantosSuavizados40 = new Vector2[4];
     private bool primeiraVez40 = true;
@@ -270,7 +266,10 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         }
 
         if (visualizadorFuncao != null)
+        {
+            visualizadorFuncao.RegistrarProvedorAncora(this);
             visualizadorFuncao.AtualizarCoeficientes(parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
+        }
 
         // One Euro: minCutoff baixo = suave quando parado, beta baixo = pouca reação a velocidade
         filtroPos = new OneEuroFilterVec3(0.4f, 0.0001f, 1.0f);
@@ -289,47 +288,9 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
             cameraManager.frameReceived -= OnCameraFrameReceived;
     }
 
-    void Update()
-    {
-        if (visualizadorFuncao == null) return;
-
-        // Checa Duplo Clique na tela para desancorar o gráfico da mesa
-        bool doubleTap = false;
-        if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Began)
-        {
-            if (Time.time - lastTapTime < DOUBLE_TAP_THRESHOLD) doubleTap = true;
-            lastTapTime = Time.time;
-        }
-        else if (Input.GetMouseButtonDown(0)) // Fallback para testar no Editor
-        {
-            if (Time.time - lastTapTime < DOUBLE_TAP_THRESHOLD) doubleTap = true;
-            lastTapTime = Time.time;
-        }
-
-        // Se deu dois toques e estava ancorado, solta o gráfico para voltar a seguir a câmera
-        if (doubleTap && isAncoradoNoMundo)
-        {
-            Desancorar();
-        }
-
-        // Se está ancorado, o gráfico fica preso nas coordenadas 3D mesmo sem o ArUco na tela
-        if (isAncoradoNoMundo)
-        {
-            visualizadorFuncao.seguirCamera = false;
-
-            // Deadzone: se a diferença é minúscula, reduz a velocidade para "congelar"
-            float dist = Vector3.Distance(visualizadorFuncao.transform.position, posicaoAlvo40);
-            float ang = Quaternion.Angle(visualizadorFuncao.transform.rotation, rotacaoAlvo40);
-
-            float velPos = dist < 0.01f ? 2.0f : suavizacaoAncora;
-            float velRot = ang < 2.0f ? 2.0f : suavizacaoAncora;
-
-            visualizadorFuncao.transform.position = Vector3.Lerp(
-                visualizadorFuncao.transform.position, posicaoAlvo40, Time.deltaTime * velPos);
-            visualizadorFuncao.transform.rotation = Quaternion.Slerp(
-                visualizadorFuncao.transform.rotation, rotacaoAlvo40, Time.deltaTime * velRot);
-        }
-    }
+    // Obs.: este componente NÃO move mais o gráfico. Ele só calcula a pose alvo
+    // (IAncoraMundoProvider) e o VisualizadorFuncaoQuadratica é o único dono do transform.
+    // O duplo toque para desancorar foi movido para GestosToqueMobile.
 
     // ============================================================================================
     // Processamento de Frame da Câmera AR
@@ -373,14 +334,14 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
 
                 if (id == idAlvoMesa)
                 {
-                    achou40 = true;
-                    ProcessarPosicionamentoMarcador40(x0, y0, x1, y1, x2, y2, x3, y3, image.width, image.height);
+                    // Só conta como "achou" se a pose foi realmente calculada neste frame
+                    achou40 = ProcessarPosicionamentoMarcador40(x0, y0, x1, y1, x2, y2, x3, y3, image.width, image.height);
                 }
             }
 
-            if (achou40) 
-            { 
-                isAncoradoNoMundo = true; 
+            if (achou40)
+            {
+                isAncoradoNoMundo = true;
             }
 
             if (!achouA) parametroA.ResetarGiro();
@@ -414,13 +375,14 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     // de cálculos frágeis de profundidade por canto.
     // ============================================================================================
 
-    private void ProcessarPosicionamentoMarcador40(
+    /// <returns>true se posicaoAlvo40/rotacaoAlvo40 foram atualizadas com uma pose válida.</returns>
+    private bool ProcessarPosicionamentoMarcador40(
         float x0, float y0, float x1, float y1,
         float x2, float y2, float x3, float y3,
         int imgWidth, int imgHeight)
     {
         if (cameraAR == null) cameraAR = Camera.main;
-        if (cameraAR == null) return;
+        if (cameraAR == null) return false;
 
         // 1. Suavizar cantos 2D (deadzone adaptativa)
         Vector2 c0 = new Vector2(x0, y0), c1 = new Vector2(x1, y1);
@@ -467,7 +429,7 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         float e2 = Vector2.Distance(cantosSuavizados40[2], cantosSuavizados40[3]);
         float e3 = Vector2.Distance(cantosSuavizados40[3], cantosSuavizados40[0]);
         float avgEdge = (e0 + e1 + e2 + e3) * 0.25f;
-        if (avgEdge < 8f) return;
+        if (avgEdge < 8f) return false; // marcador pequeno/longe demais: pose não confiável
 
         float fovRad = cameraAR.fieldOfView * Mathf.Deg2Rad;
         float focalPx = (imgHeight * 0.5f) / Mathf.Tan(fovRad * 0.5f);
@@ -517,6 +479,7 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
 
         // 8. Posição final com offset
         posicaoAlvo40 = posFiltrada + rotacaoAlvo40 * offsetAncoraMarcador;
+        return true;
     }
 
     // ============================================================================================

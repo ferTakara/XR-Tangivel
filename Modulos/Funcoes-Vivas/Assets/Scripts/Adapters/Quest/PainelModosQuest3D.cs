@@ -78,8 +78,8 @@ namespace XRTangivel.Adapters.Quest
         void Update()
         {
             // Atalhos rápidos no teclado para testes no Editor / Link
+            // 'N' (novo desafio) fica só no GestosToqueMobile para não gerar dois desafios por tecla
             if (Input.GetKeyDown(KeyCode.M)) AlternarModo();
-            if (Input.GetKeyDown(KeyCode.N)) PedirNovoDesafio();
         }
     }
 }
