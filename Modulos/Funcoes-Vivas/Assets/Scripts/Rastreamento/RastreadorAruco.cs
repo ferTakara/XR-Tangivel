@@ -228,6 +228,10 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
     private int[] bufferIds = new int[MAX_MARCADORES];
     private float[] bufferCantos = new float[MAX_MARCADORES * 8];
 
+    // Buffer usado quando a imagem tem bytes de "padding" no fim de cada linha (rowStride > largura).
+    // A DLL nativa assume linhas contíguas, então compactamos antes de chamá-la.
+    private byte[] bufferCompacto;
+
     // Estado da Âncora (Marcador 40)
     private bool isAncoradoNoMundo = false;
     private Vector3 posicaoAlvo40;
@@ -251,9 +255,10 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         if (cameraAR == null)
             cameraAR = Camera.main;
 
-        parametroA.Inicializar(1.0f);
-        parametroB.Inicializar(0.0f);
-        parametroC.Inicializar(0.0f);
+        // Usa os valores iniciais definidos no Inspector
+        parametroA.Inicializar(parametroA.valorAtual);
+        parametroB.Inicializar(parametroB.valorAtual);
+        parametroC.Inicializar(parametroC.valorAtual);
 
         if (visualizadorFuncao == null)
         {
@@ -267,8 +272,9 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
 
         if (visualizadorFuncao != null)
         {
+            // Caminho único: o visualizador LÊ os coeficientes e a pose deste provedor no Update dele.
+            visualizadorFuncao.RegistrarProvedorParametros(this);
             visualizadorFuncao.RegistrarProvedorAncora(this);
-            visualizadorFuncao.AtualizarCoeficientes(parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
         }
 
         // One Euro: minCutoff baixo = suave quando parado, beta baixo = pouca reação a velocidade
@@ -304,13 +310,43 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
         var planoY = image.GetPlane(0);
         IntPtr ponteiroPixels = (IntPtr)planoY.data.GetUnsafePtr();
         int channels = planoY.pixelStride;
-        
-        try 
+
+        try
         {
-            int totalDetectados = DetectarMultiplosArucos(
-                ponteiroPixels, image.width, image.height, channels,
-                MAX_MARCADORES, bufferIds, bufferCantos
-            );
+            int bytesPorLinha = image.width * channels;
+            int totalDetectados;
+
+            if (planoY.rowStride == bytesPorLinha)
+            {
+                // Linhas contíguas: passa o ponteiro direto, sem cópia
+                totalDetectados = DetectarMultiplosArucos(
+                    ponteiroPixels, image.width, image.height, channels,
+                    MAX_MARCADORES, bufferIds, bufferCantos
+                );
+            }
+            else
+            {
+                // Linhas com padding (comum no Android): copia linha a linha para um buffer contíguo
+                int tamanho = bytesPorLinha * image.height;
+                if (bufferCompacto == null || bufferCompacto.Length < tamanho)
+                    bufferCompacto = new byte[tamanho];
+
+                byte* origem = (byte*)ponteiroPixels;
+                fixed (byte* destino = bufferCompacto)
+                {
+                    for (int linha = 0; linha < image.height; linha++)
+                    {
+                        UnsafeUtility.MemCpy(destino + linha * bytesPorLinha,
+                                             origem + linha * planoY.rowStride,
+                                             bytesPorLinha);
+                    }
+
+                    totalDetectados = DetectarMultiplosArucos(
+                        (IntPtr)destino, image.width, image.height, channels,
+                        MAX_MARCADORES, bufferIds, bufferCantos
+                    );
+                }
+            }
 
             bool achouA = false, achouB = false, achouC = false, achou40 = false;
             marcadoresVisiveisNesteFrame.Clear();
@@ -348,11 +384,7 @@ public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoPr
             if (!achouB) parametroB.ResetarGiro();
             if (!achouC) parametroC.ResetarGiro();
 
-            if ((achouA || achouB || achouC) && visualizadorFuncao != null)
-            {
-                visualizadorFuncao.AtualizarCoeficientes(
-                    parametroA.valorAtual, parametroB.valorAtual, parametroC.valorAtual);
-            }
+            // Não empurra mais os coeficientes para o visualizador: ele os lê via IParametroProvider.
         }
         catch (Exception e)
         {

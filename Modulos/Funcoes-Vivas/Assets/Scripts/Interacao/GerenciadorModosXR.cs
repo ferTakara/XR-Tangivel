@@ -7,6 +7,10 @@ public class GerenciadorModosXR : MonoBehaviour, IInteracaoAcaoProvider
     private GeradorDesafioQuadratica gerador;
     private bool modoDesafio = false;
 
+    // Guardamos as assinaturas para removê-las no OnDestroy
+    private readonly System.Collections.Generic.List<IInteracaoAcaoProvider> provedoresAssinados =
+        new System.Collections.Generic.List<IInteracaoAcaoProvider>();
+
     public event Action OnAlternarModo;
     public event Action OnNovoDesafio;
     public event Action OnResetarPosicao;
@@ -22,15 +26,28 @@ public class GerenciadorModosXR : MonoBehaviour, IInteracaoAcaoProvider
         {
             if (c is IInteracaoAcaoProvider provider && c != this)
             {
-                provider.OnNovoDesafio += () => 
-                {
-                    if (modoDesafio && gerador != null) gerador.GerarNovoDesafio();
-                };
+                provider.OnNovoDesafio += AoPedirNovoDesafio;
+                provedoresAssinados.Add(provider);
             }
         }
 
         // Inicia no modo sandbox (sem bolinhas)
         SetModo(false);
+    }
+
+    void OnDestroy()
+    {
+        foreach (var provider in provedoresAssinados)
+        {
+            if (provider != null) provider.OnNovoDesafio -= AoPedirNovoDesafio;
+        }
+        provedoresAssinados.Clear();
+    }
+
+    // Único lugar que gera desafio a partir de eventos dos provedores (botão ArUco, painel do Quest...)
+    private void AoPedirNovoDesafio()
+    {
+        if (modoDesafio && gerador != null) gerador.GerarNovoDesafio();
     }
 
     public void AlternarModo()

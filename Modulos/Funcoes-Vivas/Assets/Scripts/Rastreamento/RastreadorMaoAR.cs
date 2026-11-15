@@ -5,24 +5,24 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 
 /// <summary>
-/// Rastreia o esqueleto da mÃ£o (21 pontos 3D) em tempo real no celular usando Unity Sentis (Inference Engine)
+/// Rastreia o esqueleto da mão (21 pontos 3D) em tempo real no celular usando Unity Sentis (Inference Engine)
 /// e o modelo MediaPipe BlazeHand.
-/// Inclui pipeline otimizado com reconhecimento do gesto de Pinch (pinÃ§a entre polegar e indicador)
-/// para translaÃ§Ã£o 3D completa do grÃ¡fico (esquerda/direita, cima/baixo e profundidade Z aproximar/afastar).
-/// A profundidade Ã© estimada opticamente pelo tamanho da palma na imagem da cÃ¢mera.
+/// Inclui pipeline otimizado com reconhecimento do gesto de Pinch (pinça entre polegar e indicador)
+/// para translação 3D completa do gráfico (esquerda/direita, cima/baixo e profundidade Z aproximar/afastar).
+/// A profundidade é estimada opticamente pelo tamanho da palma na imagem da câmera.
 /// </summary>
 public class RastreadorMaoAR : MonoBehaviour
 {
-    [Header("AtivaÃ§Ã£o do MÃ³dulo")]
-    [Tooltip("Marque para reativar o rastreador de mÃ£o quando desejar. EstÃ¡ desativado por padrÃ£o para economizar 100% de performance.")]
+    [Header("Ativação do Módulo")]
+    [Tooltip("Marque para reativar o rastreador de mão quando desejar. Está desativado por padrão para economizar 100% de performance.")]
     public bool rastreadorHabilitado = false;
 
-    [Header("ConexÃ£o com AR")]
+    [Header("Conexão com AR")]
     public ARCameraManager cameraManager;
     public ARCameraBackground cameraBackground;
     public Camera cameraAR;
 
-    [Header("ConfiguraÃ§Ãµes do Modelo AI")]
+    [Header("Configurações do Modelo AI")]
     public ModelAsset handDetectorAsset;
     public ModelAsset handLandmarkerAsset;
     public TextAsset anchorsCSVAsset;
@@ -34,39 +34,39 @@ public class RastreadorMaoAR : MonoBehaviour
     public Color corOssos = new Color(0.2f, 0.7f, 1.0f, 0.85f);       // Azul brilhante
     public float tamanhoArticulacao = 0.012f; // ~1.2 cm
     public float espessuraOsso = 0.005f;      // ~5 mm
-    public float distanciaProfundidadeCamera = 0.45f; // 45 cm Ã  frente da cÃ¢mera
+    public float distanciaProfundidadeCamera = 0.45f; // 45 cm à frente da câmera
 
-    [Header("InteraÃ§Ã£o Gestual (Pinch para TranslaÃ§Ã£o 3D do GrÃ¡fico)")]
+    [Header("Interação Gestual (Pinch para Translação 3D do Gráfico)")]
     public VisualizadorFuncaoQuadratica visualizadorFuncao;
-    [Tooltip("DistÃ¢ncia mÃ¡xima entre o polegar e o indicador para ativar o pinch")]
+    [Tooltip("Distância máxima entre o polegar e o indicador para ativar o pinch")]
     public float distanciaPinchAtivacao = 0.045f; // 4.5 cm
-    [Tooltip("DistÃ¢ncia para soltar o pinch (com folga para nÃ£o soltar acidentalmente)")]
+    [Tooltip("Distância para soltar o pinch (com folga para não soltar acidentalmente)")]
     public float distanciaPinchSoltura = 0.06f;    // 6 cm
     public float sensibilidadeArrastoXY = 1.2f;
-    [Tooltip("Sensibilidade da profundidade Z ao empurrar ou puxar a mÃ£o")]
+    [Tooltip("Sensibilidade da profundidade Z ao empurrar ou puxar a mão")]
     public float sensibilidadeProfundidadeZ = 0.02f;
-    [Tooltip("Tamanho base da palma em pixels a 45cm para calibrar profundidade Ã³ptica")]
+    [Tooltip("Tamanho base da palma em pixels a 45cm para calibrar profundidade óptica")]
     public float tamanhoBasePalma = 80.0f;
-    public Color corPinchAtivo = new Color(1.0f, 0.85f, 0.1f, 1.0f); // Dourado neon ao pinÃ§ar
+    public Color corPinchAtivo = new Color(1.0f, 0.85f, 0.1f, 1.0f); // Dourado neon ao pinçar
 
-    [Header("CalibraÃ§Ã£o de Alinhamento (Eixos da CÃ¢mera)")]
-    [Tooltip("Inverte o eixo X (esquerda/direita). Mantenha desmarcado por padrÃ£o.")]
+    [Header("Calibração de Alinhamento (Eixos da Câmera)")]
+    [Tooltip("Inverte o eixo X (esquerda/direita). Mantenha desmarcado por padrão.")]
     public bool inverterEixoX = false;
 
-    [Tooltip("Inverte o eixo Y (cima/baixo). Mantenha desmarcado para nÃ£o ficar de cabeÃ§a para baixo.")]
+    [Tooltip("Inverte o eixo Y (cima/baixo). Mantenha desmarcado para não ficar de cabeça para baixo.")]
     public bool inverterEixoY = false;
 
     [Tooltip("Troca os eixos X e Y (caso o sensor do celular esteja em 90 graus)")]
     public bool trocarXeY = false;
 
-    [Header("Desempenho e Taxa de AtualizaÃ§Ã£o (FPS)")]
-    [Tooltip("ResoluÃ§Ã£o interna da textura para IA (256 Ã© 4x mais leve na GPU do celular que 512 sem perder precisÃ£o)")]
+    [Header("Desempenho e Taxa de Atualização (FPS)")]
+    [Tooltip("Resolução interna da textura para IA (256 é 4x mais leve na GPU do celular que 512 sem perder precisão)")]
     public int resolucaoTexturaIA = 256;
 
-    [Tooltip("Velocidade de acompanhamento dos ossos (30 a 50 garante resposta quase instantÃ¢nea)")]
+    [Tooltip("Velocidade de acompanhamento dos ossos (30 a 50 garante resposta quase instantânea)")]
     public float velocidadeResposta = 40.0f;
 
-    [Tooltip("Pular detector de palma em frames alternados quando a mÃ£o jÃ¡ estiver rastreada (dobra o FPS da IA!)")]
+    [Tooltip("Pular detector de palma em frames alternados quando a mão já estiver rastreada (dobra o FPS da IA!)")]
     [Range(1, 4)]
     public int intervaloDeteccaoPalma = 2;
 
@@ -83,10 +83,12 @@ public class RastreadorMaoAR : MonoBehaviour
     private Tensor<float> landmarkerInputTensor;
     private float[,] anchorsData;
 
-    // Textura da cÃ¢mera e processamento
+    // Textura da câmera e processamento
     private RenderTexture renderTextureCamera;
     private bool estaProcessando = false;
     private bool modelosCarregados = false;
+    private bool inicializado = false;   // assets + esqueleto + Sentis já preparados
+    private bool destruido = false;      // evita usar workers liberados depois de um await
     private int contadorFrames = 0;
     private float2 ultimoBoxCentre;
     private float ultimoBoxSize;
@@ -106,30 +108,41 @@ public class RastreadorMaoAR : MonoBehaviour
     private float spanPalmaPixelsAtual = 80.0f;
     private float spanPalmaAnterior = 80.0f;
 
-    // DefiniÃ§Ã£o das conexÃµes anatÃ´micas dos ossos da mÃ£o (Pares de Ã­ndices de 0 a 20)
+    // Definição das conexões anatômicas dos ossos da mão (Pares de índices de 0 a 20)
     private readonly int[][] conexoesOssos = new int[][]
     {
         // Polegar
         new int[] { 0, 1 }, new int[] { 1, 2 }, new int[] { 2, 3 }, new int[] { 3, 4 },
         // Indicador
         new int[] { 0, 5 }, new int[] { 5, 6 }, new int[] { 6, 7 }, new int[] { 7, 8 },
-        // MÃ©dio
+        // Médio
         new int[] { 0, 9 }, new int[] { 9, 10 }, new int[] { 10, 11 }, new int[] { 11, 12 },
         // Anelar
         new int[] { 0, 13 }, new int[] { 13, 14 }, new int[] { 14, 15 }, new int[] { 15, 16 },
         // Mindinho
         new int[] { 0, 17 }, new int[] { 17, 18 }, new int[] { 18, 19 }, new int[] { 19, 20 },
-        // Palma (articulaÃ§Ãµes da base dos dedos)
+        // Palma (articulações da base dos dedos)
         new int[] { 5, 9 }, new int[] { 9, 13 }, new int[] { 13, 17 }
     };
 
     void Awake()
     {
+        // Desligado por padrão: não carrega nada. Ligar depois (enabled = true) chama OnEnable,
+        // que faz a inicialização na primeira vez.
         if (!rastreadorHabilitado)
         {
             enabled = false;
-            return;
         }
+    }
+
+    /// <summary>
+    /// Prepara referências, assets, esqueleto visual e modelos na primeira vez que o componente é ligado.
+    /// Antes isso só acontecia no Awake, então ligar o componente em tempo de execução causava NullReference.
+    /// </summary>
+    private void GarantirInicializado()
+    {
+        if (inicializado) return;
+        inicializado = true;
 
         if (cameraAR == null) cameraAR = Camera.main;
         if (cameraManager == null) cameraManager = FindAnyObjectByType<ARCameraManager>();
@@ -138,11 +151,6 @@ public class RastreadorMaoAR : MonoBehaviour
 
         AutoCarregarAssets();
         CriarEstruturaVisualEsqueleto();
-    }
-
-    void Start()
-    {
-        if (!rastreadorHabilitado) return;
         InicializarSentis();
     }
 
@@ -154,7 +162,7 @@ public class RastreadorMaoAR : MonoBehaviour
             return;
         }
 
-        // 1. InterpolaÃ§Ã£o suave a 60 FPS
+        // 1. Interpolação suave a 60 FPS
         float t = Mathf.Clamp01(Time.deltaTime * velocidadeResposta);
         for (int i = 0; i < NUM_KEYPOINTS; i++)
         {
@@ -170,7 +178,7 @@ public class RastreadorMaoAR : MonoBehaviour
             linhasOssos[i].SetPosition(1, posicoes3D[idxEnd]);
         }
 
-        // 2. Reconhecimento de gesto de Pinch para translaÃ§Ã£o 3D completa (X, Y e profundidade Z)
+        // 2. Reconhecimento de gesto de Pinch para translação 3D completa (X, Y e profundidade Z)
         ProcessarGestoPinch();
     }
 
@@ -205,7 +213,7 @@ public class RastreadorMaoAR : MonoBehaviour
             }
             else
             {
-                // A) TranslaÃ§Ã£o nos eixos X e Y pelo movimento da mÃ£o
+                // A) Translação nos eixos X e Y pelo movimento da mão
                 Vector3 deltaMundo = centroPinch - posicaoPinchAnterior;
                 posicaoPinchAnterior = centroPinch;
 
@@ -216,9 +224,9 @@ public class RastreadorMaoAR : MonoBehaviour
                     visualizadorFuncao.offsetCamera.y += deltaCamera.y * sensibilidadeArrastoXY;
                 }
 
-                // B) TranslaÃ§Ã£o no eixo Z (Profundidade) pela variaÃ§Ã£o Ã³ptica do tamanho da mÃ£o
-                // Se o span aumentou: mÃ£o veio mais perto da cÃ¢mera -> aproxima o grÃ¡fico
-                // Se o span diminuiu: mÃ£o foi empurrada para longe da cÃ¢mera -> afasta o grÃ¡fico
+                // B) Translação no eixo Z (Profundidade) pela variação óptica do tamanho da mão
+                // Se o span aumentou: mão veio mais perto da câmera -> aproxima o gráfico
+                // Se o span diminuiu: mão foi empurrada para longe da câmera -> afasta o gráfico
                 float deltaSpan = spanPalmaPixelsAtual - spanPalmaAnterior;
                 spanPalmaAnterior = spanPalmaPixelsAtual;
 
@@ -254,7 +262,10 @@ public class RastreadorMaoAR : MonoBehaviour
 
     void OnEnable()
     {
-        if (!rastreadorHabilitado) return;
+        // Se o componente foi ligado (no Inspector ou por código), o módulo está habilitado
+        rastreadorHabilitado = true;
+        GarantirInicializado();
+
         if (cameraManager != null)
             cameraManager.frameReceived += OnCameraFrameReceived;
     }
@@ -263,10 +274,16 @@ public class RastreadorMaoAR : MonoBehaviour
     {
         if (cameraManager != null)
             cameraManager.frameReceived -= OnCameraFrameReceived;
+
+        // Esconde o esqueleto e solta o pinch ao desligar
+        maoDetectada = false;
+        if (estaPinchando) SoltarPinch();
+        if (containerEsqueleto != null) containerEsqueleto.SetActive(false);
     }
 
     void OnDestroy()
     {
+        destruido = true;
         detectorWorker?.Dispose();
         landmarkerWorker?.Dispose();
         detectorInputTensor?.Dispose();
@@ -398,7 +415,7 @@ public class RastreadorMaoAR : MonoBehaviour
             renderTextureCamera.Create();
         }
 
-        // Copia a imagem da cÃ¢mera AR para o RenderTexture usando o material de fundo do AR
+        // Copia a imagem da câmera AR para o RenderTexture usando o material de fundo do AR
         if (cameraBackground != null && cameraBackground.material != null)
         {
             Graphics.Blit(null, renderTextureCamera, cameraBackground.material);
@@ -416,7 +433,7 @@ public class RastreadorMaoAR : MonoBehaviour
             int texHeight = texture.height;
             float size = Mathf.Max(texWidth, texHeight);
 
-            // Matriz de transformaÃ§Ã£o afim para o detector (192x192)
+            // Matriz de transformação afim para o detector (192x192)
             float scale = size / (float)DETECTOR_INPUT_SIZE;
             var M = BlazeUtils.mul(
                 BlazeUtils.TranslationMatrix(0.5f * (new Vector2(texWidth, texHeight) + new Vector2(-size, size))),
@@ -443,6 +460,9 @@ public class RastreadorMaoAR : MonoBehaviour
                 using var outputIdx = await awaitIdx;
                 using var outputScore = await awaitScore;
                 using var outputBox = await awaitBox;
+
+                // O componente pode ter sido desligado/destruído enquanto esperávamos a GPU
+                if (destruido || !isActiveAndEnabled) return;
 
                 if (outputScore[0] < pontuacaoMinima)
                 {
@@ -477,7 +497,7 @@ public class RastreadorMaoAR : MonoBehaviour
                 rotation = ultimoRotation;
             }
 
-            // Recorta a regiÃ£o da palma para o detector de landmarks (224x224)
+            // Recorta a região da palma para o detector de landmarks (224x224)
             float2 origin2 = new float2(0.5f * LANDMARKER_INPUT_SIZE, 0.5f * LANDMARKER_INPUT_SIZE);
             float scale2 = boxSize / LANDMARKER_INPUT_SIZE;
             var M2 = BlazeUtils.mul(M, BlazeUtils.mul(BlazeUtils.mul(BlazeUtils.mul(
@@ -492,20 +512,21 @@ public class RastreadorMaoAR : MonoBehaviour
             var tensorLandmarks = (landmarkerWorker.PeekOutput("Identity") ?? landmarkerWorker.PeekOutput(0)) as Tensor<float>;
             var awaitLandmarks = tensorLandmarks.ReadbackAndCloneAsync();
             using var landmarks = await awaitLandmarks;
+            if (destruido || !isActiveAndEnabled) return;
 
-            // Calcula a distÃ¢ncia fÃ­sica estimada da mÃ£o baseada no tamanho da palma em pixels
+            // Calcula a distância física estimada da mão baseada no tamanho da palma em pixels
             float2 posImg0 = BlazeUtils.mul(M2, new float2(landmarks[3 * 0 + 0], landmarks[3 * 0 + 1])); // Pulso
-            float2 posImg9 = BlazeUtils.mul(M2, new float2(landmarks[3 * 9 + 0], landmarks[3 * 9 + 1])); // Base do dedo mÃ©dio
+            float2 posImg9 = BlazeUtils.mul(M2, new float2(landmarks[3 * 9 + 0], landmarks[3 * 9 + 1])); // Base do dedo médio
             spanPalmaPixelsAtual = math.length(posImg9 - posImg0);
 
-            // Profundidade da mÃ£o estimada opticamente (Ã³ptica de perspectiva pinhole)
+            // Profundidade da mão estimada opticamente (óptica de perspectiva pinhole)
             float profundidadeMaoEstimada = Mathf.Clamp(
                 distanciaProfundidadeCamera * (tamanhoBasePalma / Mathf.Max(spanPalmaPixelsAtual, 15.0f)),
                 0.20f,
                 1.6f
             );
 
-            // Converte os 21 pontos para o espaÃ§o 3D do mundo real Ã  frente da cÃ¢mera AR
+            // Converte os 21 pontos para o espaço 3D do mundo real à frente da câmera AR
             if (cameraAR != null)
             {
                 bool primeiraVez = !containerEsqueleto.activeSelf;

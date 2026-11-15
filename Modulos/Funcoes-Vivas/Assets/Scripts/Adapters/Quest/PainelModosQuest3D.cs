@@ -51,12 +51,17 @@ namespace XRTangivel.Adapters.Quest
 
         public void PedirNovoDesafio()
         {
-            if (geradorDesafio != null)
+            if (OnNovoDesafio != null)
             {
-                geradorDesafio.GerarNovoDesafio();
-                OnNovoDesafio?.Invoke();
-                Debug.Log("[Quest UI 3D] Novo desafio gerado!");
+                // Alguém (ex.: GerenciadorModosXR) já trata o pedido: só avisa, para não gerar duas vezes
+                OnNovoDesafio.Invoke();
             }
+            else if (geradorDesafio != null)
+            {
+                // Ninguém escutando (cena só do Quest): gera direto
+                geradorDesafio.GerarNovoDesafio();
+            }
+            Debug.Log("[Quest UI 3D] Novo desafio pedido.");
         }
 
         public void AlternarAncoraMesa()

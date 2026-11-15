@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class GeradorDesafioQuadratica : MonoBehaviour
@@ -8,9 +9,15 @@ public class GeradorDesafioQuadratica : MonoBehaviour
     [Header("Configuração dos Pontos Visuais")]
     public float margemAcerto = 0.2f;
 
+    /// <summary>Disparado uma vez quando o aluno acerta os 3 pontos do desafio atual.</summary>
+    public event Action OnDesafioResolvido;
+
     private float alvoA, alvoB, alvoC;
     private GameObject[] pontosNaTela = new GameObject[3];
+    private Renderer[] renderersPontos = new Renderer[3];
+    private bool[] pontoAcertado = new bool[3];
     private Vector2[] coordenadasAlvo = new Vector2[3];
+    private bool desafioResolvido = false;
 
     void Start()
     {
@@ -77,9 +84,12 @@ public class GeradorDesafioQuadratica : MonoBehaviour
             pontosNaTela[i].transform.localPosition = new Vector3(x * visualizador.escalaGrafico, y * visualizador.escalaGrafico, 0f);
             pontosNaTela[i].transform.localScale = Vector3.one * 0.08f;
             
-            Renderer r = pontosNaTela[i].GetComponent<Renderer>();
-            if (r != null) DefinirCor(r, Color.yellow);
+            renderersPontos[i] = pontosNaTela[i].GetComponent<Renderer>();
+            pontoAcertado[i] = false;
+            DefinirCor(renderersPontos[i], Color.yellow);
         }
+
+        desafioResolvido = false;
 
         Debug.Log($"<color=yellow>Novo desafio gerado! Alvo: A={alvoA}, B={alvoB}, C={alvoC}</color>");
     }
@@ -133,28 +143,34 @@ public class GeradorDesafioQuadratica : MonoBehaviour
                              (visualizador.coeficienteB * x) +
                              visualizador.coeficienteC;
 
-            Renderer rend = pontosNaTela[i].GetComponent<Renderer>();
-            if (Mathf.Abs(yUsuario - yEsperado) > margemAcerto)
+            bool acertou = Mathf.Abs(yUsuario - yEsperado) <= margemAcerto;
+            if (!acertou) ganhou = false;
+
+            // Só troca a cor quando o estado do ponto muda (evita mexer no material todo frame)
+            if (acertou != pontoAcertado[i])
             {
-                ganhou = false;
-                DefinirCor(rend, Color.yellow);
-            }
-            else
-            {
-                DefinirCor(rend, Color.green);
+                pontoAcertado[i] = acertou;
+                DefinirCor(renderersPontos[i], acertou ? Color.green : Color.yellow);
             }
         }
 
-        if (ganhou)
+        // Avisa uma única vez por desafio (antes logava todo frame enquanto estava resolvido)
+        if (ganhou && !desafioResolvido)
         {
+            desafioResolvido = true;
             Debug.Log("<color=green>VOCÊ RESOLVEU O QUEBRA-CABEÇA!</color>");
+            OnDesafioResolvido?.Invoke();
+        }
+        else if (!ganhou)
+        {
+            desafioResolvido = false;
         }
     }
 
     private float SorteioArredondado(float min, float max, float step)
     {
         int range = Mathf.RoundToInt((max - min) / step);
-        int rand = Random.Range(0, range + 1);
+        int rand = UnityEngine.Random.Range(0, range + 1);
         return min + (rand * step);
     }
 }
