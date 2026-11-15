@@ -32,9 +32,9 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
             deep = false;
         }
 
-        protected override TreeViewItem BuildRoot()
+        protected override TreeViewItem<int> BuildRoot()
         {
-            var root = new TreeViewItem(0, -1, "Root");
+            var root = new TreeViewItem<int>(0, -1, "Root");
             if (_mode == 0)
             {
                 foreach (var t in DebuggerState._functionCalls)
@@ -58,7 +58,7 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
             if (root.hasChildren)
                 SetupDepthsFromParentsAndChildren(root);
             else
-                root.AddChild(new TreeViewItem(0));
+                root.AddChild(new TreeViewItem<int>(0));
 
             return root;
         }

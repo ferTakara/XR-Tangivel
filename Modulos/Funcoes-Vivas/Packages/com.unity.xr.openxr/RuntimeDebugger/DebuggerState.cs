@@ -199,7 +199,7 @@ namespace UnityEditor.XR.OpenXR.Features.RuntimeDebugger
             _doneCallback?.Invoke();
         }
 
-        internal class DebugEvent : TreeViewItem
+        internal class DebugEvent : TreeViewItem<int>
         {
             private static int idCounter = 1;
             private List<DebugEvent> childrenEvents = new List<DebugEvent>();
