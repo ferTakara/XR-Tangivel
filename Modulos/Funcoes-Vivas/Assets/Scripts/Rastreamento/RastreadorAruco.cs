@@ -3,8 +3,9 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using Unity.Collections.LowLevel.Unsafe;
+using XRTangivel.Core;
 
-public class RastreadorAruco : MonoBehaviour
+public class RastreadorAruco : MonoBehaviour, IParametroProvider, IAncoraMundoProvider
 {
     public enum ModoRotacao
     {
@@ -308,11 +309,7 @@ public class RastreadorAruco : MonoBehaviour
         // Se deu dois toques e estava ancorado, solta o gráfico para voltar a seguir a câmera
         if (doubleTap && isAncoradoNoMundo)
         {
-            isAncoradoNoMundo = false;
-            visualizadorFuncao.seguirCamera = true;
-            primeiraVez40 = true;
-            filtroPos.Reset();
-            filtroYaw.Reset();
+            Desancorar();
         }
 
         // Se está ancorado, o gráfico fica preso nas coordenadas 3D mesmo sem o ArUco na tela
@@ -520,5 +517,32 @@ public class RastreadorAruco : MonoBehaviour
 
         // 8. Posição final com offset
         posicaoAlvo40 = posFiltrada + rotacaoAlvo40 * offsetAncoraMarcador;
+    }
+
+    // ============================================================================================
+    // Implementação das Interfaces Multiplataforma (IParametroProvider e IAncoraMundoProvider)
+    // ============================================================================================
+
+    public float CoeficienteA => parametroA != null ? parametroA.valorAtual : 1.0f;
+    public float CoeficienteB => parametroB != null ? parametroB.valorAtual : 0.0f;
+    public float CoeficienteC => parametroC != null ? parametroC.valorAtual : 0.0f;
+    public bool EstaAtivo => this.enabled && gameObject.activeInHierarchy;
+
+    public bool EstaAncorado => isAncoradoNoMundo;
+
+    public bool TentarObterPose(out Vector3 posicao, out Quaternion rotacao)
+    {
+        posicao = posicaoAlvo40;
+        rotacao = rotacaoAlvo40;
+        return isAncoradoNoMundo;
+    }
+
+    public void Desancorar()
+    {
+        isAncoradoNoMundo = false;
+        if (visualizadorFuncao != null) visualizadorFuncao.seguirCamera = true;
+        primeiraVez40 = true;
+        if (filtroPos != null) filtroPos.Reset();
+        if (filtroYaw != null) filtroYaw.Reset();
     }
 }

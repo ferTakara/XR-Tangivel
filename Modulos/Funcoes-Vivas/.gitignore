@@ -17,6 +17,8 @@
 # Cenas de recuperação de crash
 /_Recovery/
 Assets/_Recovery/
+_Recovery.meta
+Assets/_Recovery.meta
 
 # Capturas de memória e gravações (podem ser gigantescas)
 /[Mm]emoryCaptures/

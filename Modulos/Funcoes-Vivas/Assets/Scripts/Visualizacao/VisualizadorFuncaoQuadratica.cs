@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using TMPro;
+using XRTangivel.Core;
 
 public class VisualizadorFuncaoQuadratica : MonoBehaviour
 {
@@ -49,7 +50,21 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
     public LineRenderer linhaEixos;
     public TMP_Text textoEquacao;
 
+    [Header("Provedores Multiplataforma (Opcional)")]
+    private IParametroProvider provedorParametros;
+    private IAncoraMundoProvider provedorAncora;
+
     private Camera camPrincipal;
+
+    public void RegistrarProvedorParametros(IParametroProvider provedor)
+    {
+        provedorParametros = provedor;
+    }
+
+    public void RegistrarProvedorAncora(IAncoraMundoProvider provedor)
+    {
+        provedorAncora = provedor;
+    }
 
     void Awake()
     {
@@ -62,6 +77,25 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         if (camPrincipal == null)
             camPrincipal = Camera.main;
 
+        // Auto-descoberta de provedores se não foram injetados previamente
+        if (provedorParametros == null)
+        {
+            var comps = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            foreach (var c in comps)
+            {
+                if (c is IParametroProvider p) { provedorParametros = p; break; }
+            }
+        }
+
+        if (provedorAncora == null)
+        {
+            var comps = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            foreach (var c in comps)
+            {
+                if (c is IAncoraMundoProvider a) { provedorAncora = a; break; }
+            }
+        }
+
         if (seguirCamera && camPrincipal != null)
         {
             Vector3 posAlvo = camPrincipal.transform.position + camPrincipal.transform.forward * distanciaCamera + camPrincipal.transform.TransformDirection(offsetCamera);
@@ -70,6 +104,35 @@ public class VisualizadorFuncaoQuadratica : MonoBehaviour
         }
 
         RedesenharGrafico();
+    }
+
+    void Update()
+    {
+        // Se há um provedor ativo (ArUco no Mobile, Dials/Mãos no Quest), sincroniza coeficientes
+        if (provedorParametros != null && provedorParametros.EstaAtivo)
+        {
+            float a = provedorParametros.CoeficienteA;
+            float b = provedorParametros.CoeficienteB;
+            float c = provedorParametros.CoeficienteC;
+
+            if (Mathf.Abs(a - coeficienteA) > 0.0001f ||
+                Mathf.Abs(b - coeficienteB) > 0.0001f ||
+                Mathf.Abs(c - coeficienteC) > 0.0001f)
+            {
+                AtualizarCoeficientes(a, b, c);
+            }
+        }
+
+        // Se há um provedor de âncora ativo
+        if (provedorAncora != null && provedorAncora.EstaAncorado)
+        {
+            if (provedorAncora.TentarObterPose(out Vector3 posAlvo, out Quaternion rotAlvo))
+            {
+                seguirCamera = false;
+                transform.position = Vector3.Lerp(transform.position, posAlvo, Time.deltaTime * suavizacaoSeguir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, rotAlvo, Time.deltaTime * suavizacaoSeguir);
+            }
+        }
     }
 
     void LateUpdate()

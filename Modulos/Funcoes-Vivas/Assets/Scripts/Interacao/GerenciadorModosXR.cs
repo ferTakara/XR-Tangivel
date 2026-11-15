@@ -1,26 +1,51 @@
+using System;
 using UnityEngine;
+using XRTangivel.Core;
 
-public class GerenciadorModosXR : MonoBehaviour
+public class GerenciadorModosXR : MonoBehaviour, IInteracaoAcaoProvider
 {
     private GeradorDesafioQuadratica gerador;
     private bool modoDesafio = false;
+
+    public event Action OnAlternarModo;
+    public event Action OnNovoDesafio;
+    public event Action OnResetarPosicao;
 
     void Start()
     {
         // Encontra o gerador de desafios na cena
         gerador = FindAnyObjectByType<GeradorDesafioQuadratica>();
         
+        // Conecta automaticamente com provedores de ação tangíveis (ex: botão ArUco)
+        var acoesTangiveis = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+        foreach (var c in acoesTangiveis)
+        {
+            if (c is IInteracaoAcaoProvider provider && c != this)
+            {
+                provider.OnNovoDesafio += () => 
+                {
+                    if (modoDesafio && gerador != null) gerador.GerarNovoDesafio();
+                };
+            }
+        }
+
         // Inicia no modo sandbox (sem bolinhas)
         SetModo(false);
     }
 
-    void SetModo(bool desafio)
+    public void AlternarModo()
+    {
+        SetModo(!modoDesafio);
+    }
+
+    public void SetModo(bool desafio)
     {
         modoDesafio = desafio;
         if (gerador != null)
         {
             gerador.AtivarModo(desafio);
         }
+        OnAlternarModo?.Invoke();
     }
 
     // Usamos OnGUI desenhado proceduralmente para ser super leve 
@@ -67,6 +92,7 @@ public class GerenciadorModosXR : MonoBehaviour
             if (GUI.Button(new Rect(xNovoDesafio, margem * 2, larguraBotao, alturaBotao), "Novo Desafio"))
             {
                 gerador.GerarNovoDesafio();
+                OnNovoDesafio?.Invoke();
             }
             GUI.color = Color.white;
         }
